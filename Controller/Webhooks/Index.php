@@ -95,9 +95,14 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $reepayEmail;
 
     /**
-     * @var \\Magento\Framework\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $registry;
+
+    /**
+     * @var \Magento\Payment\Helper\Data
+     */
+    protected $paymentHelper;
 
     /**
      * Index constructor
@@ -122,6 +127,7 @@ class Index extends \Magento\Framework\App\Action\Action
      * @param \Radarsofthouse\Reepay\Helper\SurchargeFee $reepaySurchargeFee
      * @param \Radarsofthouse\Reepay\Helper\Email $reepayEmail
      * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Payment\Helper\Data $paymentHelper
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -143,7 +149,8 @@ class Index extends \Magento\Framework\App\Action\Action
         \Radarsofthouse\Reepay\Helper\Charge $reepayCharge,
         \Radarsofthouse\Reepay\Helper\SurchargeFee $reepaySurchargeFee,
         \Radarsofthouse\Reepay\Helper\Email $reepayEmail,
-        \Magento\Framework\Registry $registry
+        \Magento\Framework\Registry $registry,
+        \Magento\Payment\Helper\Data $paymentHelper
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->logger = $logger;
@@ -164,6 +171,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $this->reepaySurchargeFee = $reepaySurchargeFee;
         $this->reepayEmail = $reepayEmail;
         $this->registry = $registry;
+        $this->paymentHelper = $paymentHelper;
         parent::__construct($context);
 
         // CsrfAwareAction Magento2.3 compatibility
@@ -317,6 +325,43 @@ class Index extends \Magento\Framework\App\Action\Action
             $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
             $reepayTransactionData = $this->invoiceHelper->getTransaction($apiKey, $order_id, $data['transaction']);
 
+            $chargeRes = $this->reepayCharge->get(
+                $apiKey,
+                $order_id
+            );
+
+            $updatePaymentMethod = $this->reepayHelper->getConfig('update_order_payment_method', $order->getStoreId());
+            if ($updatePaymentMethod && $order->getPayment() && $order->getPayment()->getMethod() == 'reepay_payment') {
+                $sourceTypeAndPaymentMethodMapping = \Radarsofthouse\Reepay\Helper\Data::REEPAY_SOURCE_TYPE_AND_PAYMENT_METHOD_MAPPING;
+                if (isset($chargeRes['source']['type'])) {
+                    $sourceType = $chargeRes['source']['type'];
+                    if (isset($sourceTypeAndPaymentMethodMapping[$sourceType])) {
+                        $newMethod = $sourceTypeAndPaymentMethodMapping[$sourceType];
+                        $currentMethod = $order->getPayment()->getMethod();
+
+                        if ($currentMethod !== $newMethod) {
+                            // save new payment method to order
+                            $order->getPayment()->setMethod($newMethod);
+                            $methodInstance = $this->paymentHelper->getMethodInstance($newMethod);
+                            $methodTitle = $methodInstance ? $methodInstance->getConfigData('title', $order->getStoreId()) : null;
+                            $order->getPayment()->setAdditionalInformation('method_title', $methodTitle);
+                            $order->save();
+
+                            // Add order history comment
+                            $comment = sprintf(
+                                'Payment method updated from "%s" to "%s" (%s) by Frisbii webhook.',
+                                $currentMethod,
+                                $newMethod,
+                                $methodTitle ?? 'N/A'
+                            );
+                            $order->addStatusHistoryComment($comment)
+                                ->setIsCustomerNotified(false)
+                                ->save();
+                        }
+                    }
+                }
+            }
+
             if (!empty($reepayTransactionData['id']) && $reepayTransactionData['type'] == "settle") {
                 // check the transaction has been created
                 $transactions = $this->transactionSearchResultInterfaceFactory->create()->addOrderIdFilter($order->getId());
@@ -330,11 +375,6 @@ class Index extends \Magento\Framework\App\Action\Action
                         $authorizationTxnId = $transaction->getTxnId();
                     }
                 }
-
-                $chargeRes = $this->reepayCharge->get(
-                    $apiKey,
-                    $order_id
-                );
 
                 $reepayMethod = isset($chargeRes['source']['type']) ? $chargeRes['source']['type'] : '';
 
@@ -643,6 +683,38 @@ class Index extends \Magento\Framework\App\Action\Action
                 $apiKey,
                 $order_id
             );
+
+            $updatePaymentMethod = $this->reepayHelper->getConfig('update_order_payment_method', $order->getStoreId());
+            if ($updatePaymentMethod && $order->getPayment() && $order->getPayment()->getMethod() == 'reepay_payment') {
+                $sourceTypeAndPaymentMethodMapping = \Radarsofthouse\Reepay\Helper\Data::REEPAY_SOURCE_TYPE_AND_PAYMENT_METHOD_MAPPING;
+                if (isset($chargeRes['source']['type'])) {
+                    $sourceType = $chargeRes['source']['type'];
+                    if (isset($sourceTypeAndPaymentMethodMapping[$sourceType])) {
+                        $newMethod = $sourceTypeAndPaymentMethodMapping[$sourceType];
+                        $currentMethod = $order->getPayment()->getMethod();
+
+                        if ($currentMethod !== $newMethod) {
+                            // save new payment method to order
+                            $order->getPayment()->setMethod($newMethod);
+                            $methodInstance = $this->paymentHelper->getMethodInstance($newMethod);
+                            $methodTitle = $methodInstance ? $methodInstance->getConfigData('title', $order->getStoreId()) : null;
+                            $order->getPayment()->setAdditionalInformation('method_title', $methodTitle);
+                            $order->save();
+
+                            // Add order history comment
+                            $comment = sprintf(
+                                'Payment method updated from "%s" to "%s" (%s) by Frisbii webhook.',
+                                $currentMethod,
+                                $newMethod,
+                                $methodTitle ?? 'N/A'
+                            );
+                            $order->addStatusHistoryComment($comment)
+                                ->setIsCustomerNotified(false)
+                                ->save();
+                        }
+                    }
+                }
+            }
 
             // add Reepay payment data
             $data = [

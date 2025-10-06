@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.62 on 6 October 2025
+- Added a new feature to automatically update the order payment method to a specific method when placing an order with the main payment method.
+
 ## Version 1.2.61 on 1 August 2025
 - Added csp_whitelist.xml to configure Content Security Policy (CSP) whitelisting
 

@@ -115,6 +115,10 @@
                     <label>Change order status to cancelled if the customer is redirected to the cancel_url</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
+                <field id="update_order_payment_method" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="61" translate="label" type="select">
+                    <label>Update order payment method to a specific method when placing an order with the main payment method</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
 				<field id="send_order_email_when_success" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="62" translate="label" type="select">
 					<label>Send order confirmation email after payment has been made</label>
 					<comment/>

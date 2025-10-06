@@ -77,6 +77,50 @@ class Data extends AbstractHelper
         'offline_other'
     ];
 
+    const REEPAY_SOURCE_TYPE_AND_PAYMENT_METHOD_MAPPING = [
+        'viabill' => 'reepay_viabill',
+        'anyday' => 'reepay_anyday',
+        'mpo' => 'reepay_mobilepay',
+        'applepay' => 'reepay_applepay',
+        'paypal' => 'reepay_paypal',
+        'klarna_pay_now' => 'reepay_klarnapaynow',
+        'klarna_pay_later' => 'reepay_klarnapaylater',
+        'klarna_slice_it' => 'reepay_klarnasliceit',
+        'klarna_direct_bank_transfer' => 'reepay_klarnadirectbanktransfer',
+        'klarna_direct_debit' => 'reepay_klarnadirectdebit',
+        'swish' => 'reepay_swish',
+        'vipps' => 'reepay_vipps',
+        'ffk' => 'reepay_forbrugsforeningen',
+        'googlepay' => 'reepay_googlepay',
+        'ideal' => 'reepay_ideal',
+        'blik' => 'reepay_blik',
+        'pp_blik_oc' => 'reepay_blik',
+        'p24' => 'reepay_p24',
+        'verkkopankki' => 'reepay_verkkopankki',
+        'giropay' => 'reepay_giropay',
+        'sepa' => 'reepay_sepa',
+        'bancontact' => 'reepay_bancontact',
+        'santander' => 'reepay_santander',
+        'eps' => 'reepay_eps',
+        'estonia_banks' => 'reepay_estoniabanks',
+        'latvia_banks' => 'reepay_latviabanks',
+        'lithuania_banks' => 'reepay_lithuaniabanks',
+        'mb_way' => 'reepay_mbway',
+        'multibanco' => 'reepay_multibanco',
+        'mybank' => 'reepay_mybank',
+        'payconiq' => 'reepay_payconiq',
+        'paysafecard' => 'reepay_paysafecard',
+        'paysera' => 'reepay_paysera',
+        'postfinance' => 'reepay_postfinance',
+        'satispay' => 'reepay_satispay',
+        'trustly' => 'reepay_trustly',
+        'wechatpay' => 'reepay_wechatpay',
+        'offline_bank_transfer' => 'reepay_banktransfer',
+        'offline_cash' => 'reepay_cash',
+        'offline_other' => 'reepay_other',
+        'vipps_epayment' => 'reepay_vippsepayment'
+    ];
+
 
     /**
      * @var \Magento\Store\Model\StoreManagerInterface

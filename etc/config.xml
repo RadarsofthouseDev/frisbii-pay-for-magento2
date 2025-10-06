@@ -25,6 +25,7 @@
 				<auto_cancel_unpaid_order_after>30</auto_cancel_unpaid_order_after>
 				<auto_create_invoice>0</auto_create_invoice>
 				<cancel_order_after_payment_cancel>0</cancel_order_after_payment_cancel>
+				<update_order_payment_method>0</update_order_payment_method>
 				<allowspecific/>
 				<specificcountry/>
 				<allowwed_payment>card</allowwed_payment>
