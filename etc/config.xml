@@ -32,6 +32,7 @@
 				<payment_icons></payment_icons>
 				<use_custom_icon>0</use_custom_icon>
 				<payment_link>payment_reepay_payment_payment_link</payment_link>
+                <age_verification_enabled>0</age_verification_enabled>
 				<sort_order>0</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaypayment</model>
 			</reepay_payment>

@@ -2,7 +2,7 @@
     "name": "radarsofthouse/reepay",
     "description": "Frisbii Pay for Magento 2",
     "type": "magento2-module",
-    "version": "1.2.62",
+    "version": "1.2.63",
     "authors": [
         {
             "email": "info@radarsofthouse.dk",

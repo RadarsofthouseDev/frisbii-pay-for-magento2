@@ -154,6 +154,10 @@
 					<label>Payment Link Email Template</label>
 					<source_model>Radarsofthouse\Reepay\Model\Config\Source\Email\Template</source_model>
 				</field>
+                <field id="age_verification_enabled" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="84" translate="label" type="select">
+                    <label>Enable age verification</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
 				<field id="log" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="85" translate="label" type="select">
 					<label>Log</label>
 					<comment/>

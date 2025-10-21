@@ -3,6 +3,8 @@
 namespace Radarsofthouse\Reepay\Helper;
 
 use Magento\Framework\App\Helper\AbstractHelper;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Sales\Model\Order;
 use Magento\Store\Model\ScopeInterface;
 
 class Data extends AbstractHelper
@@ -153,6 +155,11 @@ class Data extends AbstractHelper
     protected $_priceHelper;
 
     /**
+     * @var \Magento\Catalog\Api\ProductRepositoryInterface
+     */
+    protected $_productRepository;
+
+    /**
      * Constructor
      *
      * @param \Magento\Framework\App\Helper\Context $context
@@ -162,6 +169,7 @@ class Data extends AbstractHelper
      * @param \Radarsofthouse\Reepay\Model\Status $reepayStatus
      * @param \Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface $transactionBuilder
      * @param \Magento\Framework\Pricing\Helper\Data $priceHelper
+     * @param \Magento\Catalog\Api\ProductRepositoryInterface $productRepository
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -170,7 +178,8 @@ class Data extends AbstractHelper
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Radarsofthouse\Reepay\Model\Status $reepayStatus,
         \Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface $transactionBuilder,
-        \Magento\Framework\Pricing\Helper\Data $priceHelper
+        \Magento\Framework\Pricing\Helper\Data $priceHelper,
+        \Magento\Catalog\Api\ProductRepositoryInterface $productRepository
     ) {
         parent::__construct($context);
         $this->_storeManager = $storeManager;
@@ -179,6 +188,7 @@ class Data extends AbstractHelper
         $this->_reepayStatus = $reepayStatus;
         $this->_transactionBuilder = $transactionBuilder;
         $this->_priceHelper = $priceHelper;
+        $this->_productRepository = $productRepository;
     }
 
     /**
@@ -1085,6 +1095,50 @@ class Data extends AbstractHelper
     {
         if ($method === 'reepay_payment' && in_array($reepayMethod, self::REEPAY_AUTO_CAPTURE_METHODS, true)) {
             return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if order requires age verification
+     *
+     * @param Order $order
+     * @return bool|int
+     */
+    public function getAgeVerification($order)
+    {
+        $storeId = $order->getStoreId();
+        $ageVerificationEnabled = $this->getConfig('age_verification_enabled', $storeId);
+        if ($ageVerificationEnabled) {
+            $ageVerificationNumber = 0;
+            foreach ($order->getAllItems() as $item) {
+                try {
+                    $product = $this->_productRepository->getById($item->getProductId());
+                } catch (NoSuchEntityException $e) {
+                    continue;
+                }
+                $isEnabled = $product->getData('frisbii_age_verification_enabled');
+                if ($isEnabled) {
+                    $attribute = $product->getCustomAttribute('frisbii_minimum_user_age');
+                    if ($attribute && $attribute->getValue() > $ageVerificationNumber) {
+                        $ageVerificationNumber = (int)$attribute->getValue();
+                    }
+                } elseif ($item->getParentItem()) {
+                    try {
+                        $product = $this->_productRepository->getById($item->getParentItem()->getProductId());
+                    } catch (NoSuchEntityException $e) {
+                        continue;
+                    }
+                    $isEnabled = $product->getData('frisbii_age_verification_enabled');
+                    if ($isEnabled) {
+                        $attribute = $product->getCustomAttribute('frisbii_minimum_user_age');
+                        if ($attribute && $attribute->getValue() > $ageVerificationNumber) {
+                            $ageVerificationNumber = (int)$attribute->getValue();
+                        }
+                    }
+                }
+            }
+            return $ageVerificationNumber > 0 ? $ageVerificationNumber : false;
         }
         return false;
     }

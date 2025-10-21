@@ -62,8 +62,6 @@ class Payment extends AbstractHelper
     protected $_reepaySessionRepository;
 
     /**
-     * Constructor
-     *
      * @param \Magento\Framework\App\Helper\Context $context
      * @param \Magento\Framework\Locale\Resolver $resolver
      * @param \Radarsofthouse\Reepay\Helper\Session $reepaySessionHelper
@@ -74,6 +72,8 @@ class Payment extends AbstractHelper
      * @param \Radarsofthouse\Reepay\Helper\Charge $reepayChargeHelper
      * @param \Radarsofthouse\Reepay\Api\CustomerRepositoryInterface $customerRepository
      * @param \Magento\Customer\Model\Session $customerSession
+     * @param \Radarsofthouse\Reepay\Api\Data\SessionInterfaceFactory $reepaySessionFactory
+     * @param \Radarsofthouse\Reepay\Api\SessionRepositoryInterface $reepaySessionRepository
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -138,7 +138,8 @@ class Payment extends AbstractHelper
         $settle = false;
         $autoCaptureConfig = $this->_reepayHelper->getConfig('auto_capture', $order->getStoreId());
         $paymentMethod = $order->getPayment()->getMethodInstance()->getCode();
-        if ($autoCaptureConfig == 1 ||
+        if (
+            $autoCaptureConfig == 1 ||
             ($this->_reepayHelper->isReepayPaymentMethod($paymentMethod) && $order->getPayment()->getMethodInstance()->isAutoCapture())
         ) {
             $settle = true;
@@ -204,6 +205,15 @@ class Payment extends AbstractHelper
         if ($reepayCreditCard !== null) {
             $options['card_on_file'] = $reepayCreditCard;
             $options['recurring_optional'] = false;
+        }
+
+        $ageVerification = $this->_reepayHelper->getAgeVerification($order);
+        if ($ageVerification !== false) {
+            $options['minimum_user_age'] = (int)$ageVerification;
+            $options['session_data'] = [
+                'mpo_minimum_user_age' => (int)$ageVerification,
+                'vipps_epayment_minimum_user_age' => (int)$ageVerification
+            ];
         }
 
         $res = false;

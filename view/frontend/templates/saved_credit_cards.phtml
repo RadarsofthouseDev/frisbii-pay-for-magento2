@@ -9,171 +9,164 @@ foreach ($savedCreditCards as $key => $savedCreditCard) {
         $selected_key = $key;
     }
 }
+
+/** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
 ?>
 <?php if (count($savedCreditCards) > 0) { ?>
     <div class="select-credit-card">
-    <?php foreach ($savedCreditCards as $key => $savedCreditCard): ?>
-        <div class="credit-card-container">
-            <label class="credit-card">
-                <?= $escaper->escapeHtml($allAllowwedpayments[$savedCreditCard['card_type']].
-                    " : ".$savedCreditCard['masked_card']); ?>
-                <input type="radio" name="credit-card" 
-                    <?= ($key == $selected_key && $savedCreditCardInQuote != "new") ? 'checked="checked"' : ""; ?> 
-                    value="<?= $escaper->escapeHtml($savedCreditCard['id']); ?>"
-                >
-                <span class="checkmark"></span>
-            </label>
-            <span class="remove-credit-card-btn" 
-                data-cid="<?= $escaper->escapeHtml($savedCreditCard['id']); ?>" 
-                data-card="<?= $escaper->escapeHtml($savedCreditCard['masked_card']); ?>">
-            </span>
-        </div>
-    <?php endforeach; ?>
+        <?php foreach ($savedCreditCards as $key => $savedCreditCard): ?>
+            <div class="credit-card-container">
+                <label class="credit-card">
+                    <?= $escaper->escapeHtml($allAllowwedpayments[$savedCreditCard['card_type']] .
+                        " : " . $savedCreditCard['masked_card']); ?>
+                    <input type="radio" name="credit-card"
+                        <?= ($key == $selected_key && $savedCreditCardInQuote != "new") ? 'checked="checked"' : ""; ?>
+                        value="<?= $escaper->escapeHtml($savedCreditCard['id']); ?>">
+                    <span class="checkmark"></span>
+                </label>
+                <span class="remove-credit-card-btn"
+                    data-cid="<?= $escaper->escapeHtml($savedCreditCard['id']); ?>"
+                    data-card="<?= $escaper->escapeHtml($savedCreditCard['masked_card']); ?>">
+                </span>
+            </div>
+        <?php endforeach; ?>
         <div class="credit-card-container">
             <label class="credit-card"><?= $escaper->escapeHtml(__('New credit card')) ?>
-                <input type="radio" 
-                    name="credit-card" <?= ($savedCreditCardInQuote == "new") ? 'checked="checked"' : ""; ?> 
+                <input type="radio"
+                    name="credit-card" <?= ($savedCreditCardInQuote == "new") ? 'checked="checked"' : ""; ?>
                     value="new">
                 <span class="checkmark"></span>
             </label>
         </div>
     </div>
 
-    <script>
-        require(['jquery','Magento_Ui/js/modal/alert'],function($,modalAlert){
-            $(document).ready(function(){
+    <?php
+    $scriptString = <<<script
+    require(['jquery', 'Magento_Ui/js/modal/alert'], function($, modalAlert) {
+        $(document).ready(function() {
 
-                function setCreditCard(){
-                    var data = {
-                        cid: $('input[name="credit-card"]:checked').val(),
+            function setCreditCard() {
+                var data = {
+                    cid: $('input[name="credit-card"]:checked').val()
+                };
+                $.ajax({
+                    url: '{$escaper->escapeJs($block->getSetCreditCardUrl())}',
+                    method: 'POST',
+                    data: data,
+                    showLoader: true,
+                    cache: false
+                }).done(function(data) {
+                    if (data.status === 'success') {
+                        // success logic here
+                    } else if (data.status === 'failure') {
+                        modalAlert({
+                            title: $.mage.__('Error'),
+                            content: data.message,
+                            modalClass: 'confirm reepay-modal',
+                            actions: {
+                                always: function() {}
+                            },
+                            buttons: [{
+                                text: $.mage.__('OK'),
+                                class: 'action primary accept',
+                                click: function() {
+                                    this.closeModal(true);
+                                }
+                            }]
+                        });
                     }
-                    $.ajax({
-                        url: '<?= $escaper->escapeUrl($block->getSetCreditCardUrl()); ?>',
-                        method: 'POST',
-                        data: data,
-                        showLoader: true,
-                        cache: false
-                    }).done(function(data){
-                        if( data.status == 'success' ){
-                            
-                        }else if( data.status == 'failure' ){
+                }).fail(function(err) {
+                    console.log("Ajax error");
+                    console.log(err);
+                });
+            }
 
-                            modalAlert({
-                                title: $.mage.__('Error'),
-                                content: data.message,
-                                modalClass: 'confirm reepay-modal',
-                                actions: {
-                                    always: function(){
+            if ($('.select-credit-card').length > 0) {
+                setCreditCard();
+            }
+
+            $('input[name="credit-card"]').change(function() {
+                setCreditCard();
+            });
+
+            $(".select-credit-card .remove-credit-card-btn").click(function(e) {
+                var removeBtn = $(this);
+                var cid = $(this).data("cid");
+                var card = $(this).data("card");
+
+                modalAlert({
+                    title: $.mage.__(''),
+                    content: $.mage.__('Do you want to remove your saved card %1?').replace('%1', card),
+                    modalClass: 'confirm reepay-modal',
+                    actions: {
+                        always: function() {}
+                    },
+                    buttons: [{
+                        text: $.mage.__('Yes'),
+                        class: 'action primary accept',
+                        click: function() {
+                            var reepayModal = this;
+                            var data = {
+                                cid: cid
+                            };
+
+                            $.ajax({
+                                url: '{$escaper->escapeJs($block->getRemoveCardUrl())}',
+                                method: 'POST',
+                                data: data,
+                                showLoader: true,
+                                cache: false
+                            }).done(function(data) {
+                                if (data.status === 'success') {
+                                    removeBtn.parent().remove();
+
+                                    if ($('input[name="credit-card"]:checked').length > 0) {
+                                        setCreditCard();
+                                    } else {
+                                        $('input[name="credit-card"]').prop('checked', false);
+                                        $('.select-credit-card .credit-card-container:first-child input[name="credit-card"]').prop('checked', true);
+                                        setCreditCard();
                                     }
-                                },
-                                buttons: [{
-                                    text: $.mage.__('OK'),
-                                    class: 'action primary accept',
-                                    click: function () {
-                                        this.closeModal(true);
-                                    }
-                                }]
+
+                                    reepayModal.closeModal(true);
+                                } else if (data.status === 'failure') {
+                                    reepayModal.closeModal(true);
+
+                                    modalAlert({
+                                        title: $.mage.__('Error'),
+                                        content: data.message,
+                                        modalClass: 'confirm reepay-modal',
+                                        actions: {
+                                            always: function() {}
+                                        },
+                                        buttons: [{
+                                            text: $.mage.__('OK'),
+                                            class: 'action primary accept',
+                                            click: function() {
+                                                this.closeModal(true);
+                                            }
+                                        }]
+                                    });
+                                }
+                            }).fail(function(err) {
+                                console.log("Ajax error");
+                                console.log(err);
                             });
                         }
-                    }).fail(function(err){
-                        console.log("Ajax error");
-                        console.log(err);
-                    });
-                }
-                
-                if($('.select-credit-card').length > 0){
-                    setCreditCard();
-                }
-                
-                $('input[name="credit-card"]').change(function() {
-                    setCreditCard();
-                });
-
-                $(".select-credit-card .remove-credit-card-btn").click(function(e){
-                    var removeBtn = $(this);
-                    var cid = $(this).data("cid");
-                    var card = $(this).data("card");
-                    modalAlert({
-                        title: $.mage.__(''),
-                        content: $.mage.__('Do you want to remove your saved card %1?').replace('%1', card),
-                        modalClass: 'confirm reepay-modal',
-                        actions: {
-                            always: function(){
-                                
-                            }
-                        },
-                        buttons: [{
-                            text: $.mage.__('Yes'),
-                            class: 'action primary accept',
-                            click: function () {
-                                var reepayModal = this;
-                                var data = {
-                                    cid: cid,
-                                }
-                                
-                                $.ajax({
-                                    url: '<?= $escaper->escapeUrl($block->getRemoveCardUrl()); ?>',
-                                    method: 'POST',
-                                    data: data,
-                                    showLoader: true,
-                                    cache: false
-                                }).done(function(data){
-                                    if( data.status == 'success' ){
-                                        
-                                        removeBtn.parent().remove();
-
-                                        if( $('input[name="credit-card"]:checked').length > 0 ){
-                                            setCreditCard();
-                                        }else{
-                                            // select first card
-                                            $('input[name="credit-card"]').attr('checked', false);
-                                            $('.select-credit-card .credit-card-container:first-child input[name="credit-card"]').attr(
-                                                'checked', 
-                                                true
-                                            );
-                                            setCreditCard();
-                                        }
-                                        
-                                        reepayModal.closeModal(true);
-                                    }else if( data.status == 'failure' ){
-                                        reepayModal.closeModal(true);
-
-                                        modalAlert({
-                                            title: $.mage.__('Error'),
-                                            content: data.message,
-                                            modalClass: 'confirm reepay-modal',
-                                            actions: {
-                                                always: function(){
-                                                }
-                                            },
-                                            buttons: [{
-                                                text: $.mage.__('OK'),
-                                                class: 'action primary accept',
-                                                click: function () {
-                                                    this.closeModal(true);
-                                                }
-                                            }]
-                                        });
-                                    }
-                                }).fail(function(err){
-                                    console.log("Ajax error");
-                                    console.log(err);
-                                });
-
-                            }
-                        }, {
-                            text: $.mage.__('No'),
-                            class: 'action cancel',
-                            click: function () {
-                                this.closeModal(true);
-                            }
-                        }]
-                    });
+                    }, {
+                        text: $.mage.__('No'),
+                        class: 'action cancel',
+                        click: function() {
+                            this.closeModal(true);
+                        }
+                    }]
                 });
             });
         });
-    </script>
+    });
+    script;
+    ?>
+    <?= /* @noEscape */ $secureRenderer->renderTag('script', [], $scriptString, false) ?>
+
 
 <?php } ?>
-
-

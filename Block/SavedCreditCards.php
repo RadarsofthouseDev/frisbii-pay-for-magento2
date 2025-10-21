@@ -86,7 +86,7 @@ class SavedCreditCards extends \Magento\Framework\View\Element\Template
         $this->_checkoutSession = $checkoutSession;
         $this->_allowwedpayment = $allowwedpayment;
     }
-    
+
     /**
      * Get saved credit card
      *
@@ -96,9 +96,10 @@ class SavedCreditCards extends \Magento\Framework\View\Element\Template
     {
         $savedCreditCards = [];
 
+        $storeId = $this->_storeManager->getStore()->getId();
         $save_card_enable = $this->_reepayHelper->getConfig(
             'save_card_enable',
-            $this->_storeManager->getStore()->getId()
+            $storeId
         );
         if ($save_card_enable) {
             if ($this->_customerSession->isLoggedIn()) {
@@ -107,6 +108,33 @@ class SavedCreditCards extends \Magento\Framework\View\Element\Template
                     $apiKey,
                     $this->_customerSession->getCustomer()
                 );
+            }
+        }
+
+        // It can be overiidden by Age Verification
+        $ageVerificationEnabled = (bool)$this->_reepayHelper->getConfig(
+            'age_verification_enabled',
+            $storeId
+        );
+
+        if (!empty($savedCreditCards)) {
+            $hasAgeRestrictedProduct = false;
+            $quote = $this->_checkoutSession->getQuote();
+
+            foreach ($quote->getAllVisibleItems() as $item) {
+                $product = $item->getProduct();
+                $ageAttr = $product->getCustomAttribute('frisbii_minimum_user_age');
+                $minimumAge = $ageAttr ? (int)$ageAttr->getValue() : 0;
+
+                if ($minimumAge > 0) {
+                    $hasAgeRestrictedProduct = true;
+                    break;
+                }
+            }
+
+            // disabled save card on checkout page when Aage Verification is enabled and has Age Restricted Product in cart
+            if ($ageVerificationEnabled && $hasAgeRestrictedProduct) {
+                $savedCreditCards = [];
             }
         }
 

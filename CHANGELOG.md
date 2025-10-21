@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.63 on 21 October 2025
+- Added age verification feature.
+
 ## Version 1.2.62 on 6 October 2025
 - Added a new feature to automatically update the order payment method to a specific method when placing an order with the main payment method.
 
