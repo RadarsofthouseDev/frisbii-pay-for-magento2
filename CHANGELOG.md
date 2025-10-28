@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.64 on 28 October 2025
+- Fixed an error that occurred during reindexing when the flat catalog was enabled.
+
 ## Version 1.2.63 on 21 October 2025
 - Added age verification feature.
 
