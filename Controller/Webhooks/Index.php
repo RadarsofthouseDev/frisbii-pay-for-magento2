@@ -317,8 +317,8 @@ class Index extends \Magento\Framework\App\Action\Action
                 $this->logger->addError('The order #' . $order_id . ' no longer exists.');
 
                 return [
-                    'status' => 500,
-                    'message' => 'The order #' . $order_id . ' no longer exists.'
+                    'status' => 200,
+                    'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
                 ];
             }
 
@@ -381,7 +381,8 @@ class Index extends \Magento\Framework\App\Action\Action
                 $_invoiceType = "";
                 $_createInvoice = false;
                 $paymentMethod = $order->getPayment()->getMethodInstance()->getCode();
-                if ($this->reepayHelper->getConfig('auto_capture', $order->getStoreId()) ||
+                if (
+                    $this->reepayHelper->getConfig('auto_capture', $order->getStoreId()) ||
                     $this->reepayHelper->isReepayMethodAutoCapture($paymentMethod, $reepayMethod) ||
                     ($this->reepayHelper->isReepayPaymentMethod($paymentMethod) && $order->getPayment()->getMethodInstance()->isAutoCapture())
                 ) {
@@ -389,10 +390,12 @@ class Index extends \Magento\Framework\App\Action\Action
                     $_createInvoice = true;
                 }
 
-                if (!$_createInvoice &&
+                if (
+                    !$_createInvoice &&
                     $this->reepayHelper->getConfig('auto_create_invoice', $order->getStoreId())
                 ) {
-                    if (isset($chargeRes['state']) &&
+                    if (
+                        isset($chargeRes['state']) &&
                         $chargeRes['state'] == "settled" &&
                         $chargeRes['amount'] == ($order->getGrandTotal() * 100)
                     ) {
@@ -502,8 +505,8 @@ class Index extends \Magento\Framework\App\Action\Action
                 $this->logger->addError('The order #' . $order_id . ' no longer exists.');
 
                 return [
-                    'status' => 500,
-                    'message' => 'The order #' . $order_id . ' no longer exists.'
+                    'status' => 200,
+                    'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
                 ];
             }
 
@@ -600,8 +603,8 @@ class Index extends \Magento\Framework\App\Action\Action
                 $this->logger->addError('The order #' . $order_id . ' no longer exists.');
 
                 return [
-                    'status' => 500,
-                    'message' => 'The order #' . $order_id . ' no longer exists.'
+                    'status' => 200,
+                    'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
                 ];
             }
 
@@ -667,6 +670,15 @@ class Index extends \Magento\Framework\App\Action\Action
         }
 
         try {
+            if (!$order->getId()) {
+                $this->logger->addError('The order #' . $order_id . ' no longer exists.');
+
+                return [
+                    'status' => 200,
+                    'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
+                ];
+            }
+
             // check if has reepay status row for the order, That means the order has been authorized
             $reepayStatus = $this->reepayStatus->load($order_id, 'order_id');
             if ($reepayStatus->getStatusId()) {

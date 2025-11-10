@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.65 on 10 November 2025
+- Updated webhook function to handle orders that do not exist in Magento, preventing Magento errors and returning HTTP 200 to stop repeated webhook retries from Frisbii.
+
 ## Version 1.2.64 on 28 October 2025
 - Fixed an error that occurred during reindexing when the flat catalog was enabled.
 
