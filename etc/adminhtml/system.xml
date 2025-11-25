@@ -87,6 +87,12 @@
                         <field id="save_card_enable">1</field>
                     </depends>
                 </field>
+                <field id="order_status_after_send_payment_link" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="60" translate="label" type="select">
+                    <label>Status of an order after payment link has been sent</label>
+                    <comment>Suggest to use "Pending" or "Pending Payment"</comment>
+                    <source_model>Radarsofthouse\Reepay\Model\Config\Source\SendPaymentLinkStatus</source_model>
+                    <config_path>payment/reepay_payment/order_status_after_send_payment_link</config_path>
+                </field>
 				<field id="order_status_after_payment" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="61" translate="label" type="select">
 					<label>Order status when the payment is made</label>
 					<comment>Suggest to use "Processing"</comment>

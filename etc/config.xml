@@ -18,6 +18,7 @@
                 <default_save_card_not_checked>0</default_save_card_not_checked>
                 <save_card_type>0</save_card_type>
 				<send_order_email_when_success>1</send_order_email_when_success>
+                <order_status_after_send_payment_link>0</order_status_after_send_payment_link>
 				<order_status_before_payment>pending</order_status_before_payment>
 				<order_status_after_payment>processing</order_status_after_payment>
 				<auto_cancel_unpaid_order>0</auto_cancel_unpaid_order>
@@ -29,7 +30,7 @@
 				<allowspecific/>
 				<specificcountry/>
 				<allowwed_payment>card</allowwed_payment>
-				<payment_icons></payment_icons>
+				<payment_icons/>
 				<use_custom_icon>0</use_custom_icon>
 				<payment_link>payment_reepay_payment_payment_link</payment_link>
                 <age_verification_enabled>0</age_verification_enabled>
@@ -41,7 +42,7 @@
 				<title>Viabill payment by Frisbii</title>
 				<instructions>Viabill payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -52,7 +53,7 @@
 				<title>Anyday payment by Frisbii</title>
 				<instructions>Anyday payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -63,7 +64,7 @@
 				<title>Mobilepay payment by Frisbii</title>
 				<instructions>Mobilepay payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -74,7 +75,7 @@
 				<title>Apple Pay payment by Frisbii</title>
 				<instructions>Apple Pay payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -85,7 +86,7 @@
 				<title>Paypal payment by Frisbii</title>
 				<instructions>Paypal payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -96,7 +97,7 @@
 				<title>Klarna Pay Now payment by Frisbii</title>
 				<instructions>Klarna Pay Now payment</instructions>
                 <show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -107,7 +108,7 @@
 				<title>Klarna Pay Later payment by Frisbii</title>
 				<instructions>Klarna Pay Later payment</instructions>
                 <show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -118,7 +119,7 @@
                 <title>Klarna Slice It payment by Frisbii</title>
                 <instructions>Klarna Slice It payment</instructions>
                 <show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
                 <allowspecific>0</allowspecific>
                 <specificcountry>0</specificcountry>
                 <sort_order>2</sort_order>
@@ -129,7 +130,7 @@
                 <title>Klarna Direct Bank Transfer payment by Frisbii</title>
                 <instructions>Klarna Direct Bank Transfer payment</instructions>
                 <show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
                 <allowspecific>0</allowspecific>
                 <specificcountry>0</specificcountry>
                 <sort_order>2</sort_order>
@@ -140,7 +141,7 @@
                 <title>Klarna Direct Debit payment by Frisbii</title>
                 <instructions>Klarna Direct Debit payment</instructions>
                 <show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
                 <allowspecific>0</allowspecific>
                 <specificcountry>0</specificcountry>
                 <sort_order>2</sort_order>
@@ -151,7 +152,7 @@
 				<title>Swish payment by Frisbii</title>
 				<instructions>Swish payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -162,7 +163,7 @@
                 <title>Vipps payment by Frisbii</title>
                 <instructions>Vipps payment</instructions>
                 <show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
                 <allowspecific>0</allowspecific>
                 <specificcountry>0</specificcountry>
                 <sort_order>2</sort_order>
@@ -173,7 +174,7 @@
 				<title>Forbrugsforeningen payment by Frisbii</title>
 				<instructions>Forbrugsforeningen payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -184,7 +185,7 @@
 				<title>Googlepay payment by Frisbii</title>
 				<instructions>Googlepay payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -195,7 +196,7 @@
 				<title>iDEAL payment by Frisbii</title>
 				<instructions>iDEAL payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -206,7 +207,7 @@
 				<title>BLIK One Click payment by Frisbii</title>
 				<instructions>BLIK One Click payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -217,7 +218,7 @@
 				<title>Przelewy24 (P24) payment by Frisbii</title>
 				<instructions>Przelewy24 (P24) payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -228,7 +229,7 @@
 				<title>Verkkopankki payment by Frisbii</title>
 				<instructions>Verkkopankki payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -239,227 +240,227 @@
 				<title>giropay payment by Frisbii</title>
 				<instructions>giropay payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaygiropay</model>
 			</reepay_giropay>
             <reepay_sepa>
-				<active></active>
+				<active>0</active>
 				<title>SEPA Direct Debit payment by Frisbii</title>
 				<instructions>SEPA Direct Debit payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaysepa</model>
 			</reepay_sepa>
             <reepay_bancontact>
-				<active></active>
+				<active>0</active>
 				<title>Bancontact payment by Frisbii</title>
 				<instructions>Bancontact payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaybancontact</model>
 			</reepay_bancontact>
             <reepay_santander>
-				<active></active>
+				<active>0</active>
 				<title>Santander payment by Frisbii</title>
 				<instructions>Santander payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaysantander</model>
 			</reepay_santander>
             <reepay_eps>
-				<active></active>
+				<active>0</active>
 				<title>EPS payment by Frisbii</title>
 				<instructions>EPS payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepayeps</model>
 			</reepay_eps>
             <reepay_estoniabanks>
-				<active></active>
+				<active>0</active>
 				<title>Estonian Banks payment by Frisbii</title>
 				<instructions>Estonian Banks payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepayestoniabanks</model>
 			</reepay_estoniabanks>
             <reepay_latviabanks>
-				<active></active>
+				<active>0</active>
 				<title>Latvian Banks payment by Frisbii</title>
 				<instructions>Latvian Banks payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaylatviabanks</model>
 			</reepay_latviabanks>
             <reepay_lithuaniabanks>
-				<active></active>
+				<active>0</active>
 				<title>Lithuanian Banks payment by Frisbii</title>
 				<instructions>Lithuanian Banks payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaylithuaniabanks</model>
 			</reepay_lithuaniabanks>
             <reepay_mbway>
-				<active></active>
+				<active>0</active>
 				<title>MB Way payment by Frisbii</title>
 				<instructions>MB Way payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaymbway</model>
 			</reepay_mbway>
             <reepay_multibanco>
-				<active></active>
+				<active>0</active>
 				<title>Multibanco payment by Frisbii</title>
 				<instructions>Multibanco payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaymultibanco</model>
 			</reepay_multibanco>
             <reepay_mybank>
-				<active></active>
+				<active>0</active>
 				<title>mBank payment by Frisbii</title>
 				<instructions>mBank payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaymybank</model>
 			</reepay_mybank>
             <reepay_payconiq>
-				<active></active>
+				<active>0</active>
 				<title>Payconiq payment by Frisbii</title>
 				<instructions>Payconiq payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaypayconiq</model>
 			</reepay_payconiq>
             <reepay_paysafecard>
-				<active></active>
+				<active>0</active>
 				<title>Paysafecard payment by Frisbii</title>
 				<instructions>Paysafecard payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaypaysafecard</model>
 			</reepay_paysafecard>
             <reepay_paysera>
-				<active></active>
+				<active>0</active>
 				<title>Paysera payment by Frisbii</title>
 				<instructions>Paysera payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaypaysera</model>
 			</reepay_paysera>
             <reepay_postfinance>
-				<active></active>
+				<active>0</active>
 				<title>PostFinance payment by Frisbii</title>
 				<instructions>PostFinance payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaypostfinance</model>
 			</reepay_postfinance>
             <reepay_satispay>
-				<active></active>
+				<active>0</active>
 				<title>Satisfy payment by Frisbii</title>
 				<instructions>Satisfy payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaysatispay</model>
 			</reepay_satispay>
             <reepay_trustly>
-				<active></active>
+				<active>0</active>
 				<title>Trustly payment by Frisbii</title>
 				<instructions>Trustly payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaytrustly</model>
 			</reepay_trustly>
             <reepay_wechatpay>
-				<active></active>
+				<active>0</active>
 				<title>WeChat Pay payment by Frisbii</title>
 				<instructions>WeChat Pay payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaywechatpay</model>
 			</reepay_wechatpay>
             <reepay_banktransfer>
-				<active></active>
+				<active>0</active>
 				<title>Bank Transfer payment by Frisbii</title>
 				<instructions>Bank Transfer payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaybanktransfer</model>
 			</reepay_banktransfer>
             <reepay_cash>
-				<active></active>
+				<active>0</active>
 				<title>Cash payment by Frisbii</title>
 				<instructions>Cash payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaycash</model>
 			</reepay_cash>
             <reepay_other>
-				<active></active>
+				<active>0</active>
 				<title>Other payment by Frisbii</title>
 				<instructions>Other payment</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>
@@ -472,7 +473,7 @@
 				<title_nok>Vipps payment by Frisbii</title_nok>
 				<instructions>Mobilepay</instructions>
 				<show_icon>0</show_icon>
-				<custom_icon></custom_icon>
+				<custom_icon/>
 				<allowspecific>0</allowspecific>
 				<specificcountry>0</specificcountry>
 				<sort_order>2</sort_order>

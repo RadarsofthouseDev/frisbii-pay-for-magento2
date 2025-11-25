@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.66 on 25 November 2025
+- Added a new backend configuration "Status of an order after the payment link has been sent", This allows the admin to set the order status when they click the "Send payment link" button or when a backend order is created and the payment link email is sent to the customer.
+
 ## Version 1.2.65 on 10 November 2025
 - Updated webhook function to handle orders that do not exist in Magento, preventing Magento errors and returning HTTP 200 to stop repeated webhook retries from Frisbii.
 

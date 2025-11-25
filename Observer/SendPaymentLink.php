@@ -50,6 +50,11 @@ class SendPaymentLink implements \Magento\Framework\Event\ObserverInterface
     protected $_messageManager;
 
     /**
+     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     */
+    protected $_orderRepository;
+
+    /**
      * Constructor
      *
      * @param \Radarsofthouse\Reepay\Helper\Charge $reepayCharge
@@ -61,6 +66,7 @@ class SendPaymentLink implements \Magento\Framework\Event\ObserverInterface
      * @param \Radarsofthouse\Reepay\Helper\Logger $logger
      * @param \Magento\Framework\App\State $state
      * @param \Magento\Framework\Message\ManagerInterface $messageManager
+     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      */
     public function __construct(
         \Radarsofthouse\Reepay\Helper\Charge $reepayCharge,
@@ -71,7 +77,8 @@ class SendPaymentLink implements \Magento\Framework\Event\ObserverInterface
         \Radarsofthouse\Reepay\Helper\Payment $reepayPayment,
         \Radarsofthouse\Reepay\Helper\Logger $logger,
         \Magento\Framework\App\State $state,
-        \Magento\Framework\Message\ManagerInterface $messageManager
+        \Magento\Framework\Message\ManagerInterface $messageManager,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
     ) {
         $this->_reepayCharge = $reepayCharge;
         $this->_scopeConfig = $scopeConfig;
@@ -82,6 +89,7 @@ class SendPaymentLink implements \Magento\Framework\Event\ObserverInterface
         $this->_logger = $logger;
         $this->_state = $state;
         $this->_messageManager = $messageManager;
+        $this->_orderRepository = $orderRepository;
     }
 
     /**
@@ -115,6 +123,19 @@ class SendPaymentLink implements \Magento\Framework\Event\ObserverInterface
                     }
                     $this->_logger->addDebug("SEND EMAIL");
                     $this->_reepayEmail->sendPaymentLinkEmail($order, $sessionId);
+
+                    $storeId = $order->getStoreId();
+                    $statusToSet = $this->_reepayHelper->getConfig('order_status_after_send_payment_link', $storeId);
+                    if (!empty($statusToSet) && $statusToSet != '0') {
+                        try {
+                            $order->setStatus($statusToSet);
+                            $order->addStatusHistoryComment(__('Order status changed to %1 after sending payment link to customer.', $statusToSet));
+                            $this->_orderRepository->save($order);
+                            $this->_logger->addDebug(__METHOD__ . " Setting order status to : " . $statusToSet);
+                        } catch (\Exception $e) {
+                            $this->_logger->addError(__METHOD__ . " Exception : " . $e->getMessage());
+                        }
+                    }
                 } catch (\Exception $e) {
                     $this->_logger->addError(__METHOD__ . " Exception : " . $e->getMessage());
                     $this->_messageManager->addException($e, $e->getMessage());

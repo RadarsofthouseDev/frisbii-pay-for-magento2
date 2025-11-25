@@ -46,6 +46,11 @@ class Send extends \Magento\Backend\App\Action
     protected $logger;
 
     /**
+     * @var \Radarsofthouse\Reepay\Helper\Data
+     */
+    protected $helperData;
+
+    /**
      * Constructor
      *
      * @param \Magento\Backend\App\Action\Context $context
@@ -57,6 +62,7 @@ class Send extends \Magento\Backend\App\Action
      * @param \Radarsofthouse\Reepay\Helper\Payment $reepayPayment
      * @param \Radarsofthouse\Reepay\Helper\Email $reepayEmail
      * @param \Radarsofthouse\Reepay\Helper\Logger $logger
+     * @param \Radarsofthouse\Reepay\Helper\Data $helperData
      */
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
@@ -67,7 +73,8 @@ class Send extends \Magento\Backend\App\Action
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
         \Radarsofthouse\Reepay\Helper\Payment $reepayPayment,
         \Radarsofthouse\Reepay\Helper\Email $reepayEmail,
-        \Radarsofthouse\Reepay\Helper\Logger $logger
+        \Radarsofthouse\Reepay\Helper\Logger $logger,
+        \Radarsofthouse\Reepay\Helper\Data $helperData
     ) {
         $this->resultFactory = $resultFactory;
         $this->request = $request;
@@ -77,6 +84,7 @@ class Send extends \Magento\Backend\App\Action
         $this->reepayPayment = $reepayPayment;
         $this->reepayEmail = $reepayEmail;
         $this->logger = $logger;
+        $this->helperData = $helperData;
         parent::__construct($context);
     }
 
@@ -96,11 +104,11 @@ class Send extends \Magento\Backend\App\Action
             if (empty($sessionId)) {
                 $this->logger->addDebug("Cannot create Frisbii payment session");
                 $this->messageManager->addError(__('Cannot create Frisbii payment session'));
-
-                return;
+                return $this->resultFactory->create(\Magento\Framework\Controller\ResultFactory::TYPE_REDIRECT)->setPath('sales/order/view', ['order_id' => $order_id]);
             }
 
             $this->reepayEmail->sendPaymentLinkEmail($order, $sessionId);
+            $this->updateOrderStatusAfterSendPaymentLink($order);
 
             $this->messageManager->addSuccess(__("Payment link email has been sent to the customer."));
         } catch (\Exception $e) {
@@ -113,5 +121,28 @@ class Send extends \Magento\Backend\App\Action
         $redirect->setUrl($redirectUrl);
 
         return $redirect;
+    }
+
+    /**
+     * Update order status after sending payment link
+     *
+     * @param \Magento\Sales\Model\Order $order
+     * @return void
+     */
+    private function updateOrderStatusAfterSendPaymentLink($order)
+    {
+        $storeId = $order->getStoreId();
+        $statusToSet = $this->helperData->getConfig('order_status_after_send_payment_link', $storeId);
+        $this->logger->addDebug(__METHOD__, [$order->getIncrementId(), $statusToSet]);
+        if (!empty($statusToSet) && $statusToSet != '0') {
+            $order->setStatus($statusToSet);
+            $order->addStatusHistoryComment(__('Order status changed to %1 after sending payment link to customer.', $statusToSet));
+            try {
+                $this->logger->addDebug(__METHOD__ . " Setting order status to : " . $statusToSet);
+                $this->orderRepository->save($order);
+            } catch (\Exception $e) {
+                $this->logger->addError(__METHOD__ . " Exception : " . $e->getMessage());
+            }
+        }
     }
 }

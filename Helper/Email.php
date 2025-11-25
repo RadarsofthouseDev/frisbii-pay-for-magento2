@@ -127,9 +127,12 @@ class Email extends AbstractHelper
                     $order->getCustomerName()
                 )
                 ->getTransport();
-        $sendResult = $transport->sendMessage();
-        $this->_logger->addDebug('$sendResult');
-        $this->_logger->addDebug($sendResult);
+        $transport->sendMessage();
+        $this->_logger->addDebug('Payment link email sent to customer.', [
+            'to_email'=> $order->getCustomerEmail(),
+            'to_name'=> $order->getCustomerName(),
+            'payment_url'=> 'https://checkout.reepay.com/#/' . $paymentTransactionId
+        ]);
     }
 
     /**
