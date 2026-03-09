@@ -2,12 +2,42 @@
 
 <div class="reepay-payment-layout">
     <div class="logo-wrapper">
-        <img class="logo" src="<?= $escaper->escapeUrl($block->getLogoSrc()); ?>" 
+        <img class="logo" src="<?= $escaper->escapeUrl($block->getLogoSrc()); ?>"
             alt="<?= $escaper->escapeHtml($block->getLogoAlt()); ?>">
     </div>
     <script>
-        require(['jquery','Reepay'],function($,Reepay){
-             var rp = new Reepay.WindowCheckout('<?= $escaper->escapeHtml($block->getPaymentTransactionId()); ?>');
-        });
+        (function() {
+            var paymentTransactionId = '<?= $escaper->escapeJs($block->getPaymentTransactionId()); ?>';
+
+            function initReepayWindowCheckout(ReepayLib) {
+                var rp = new ReepayLib.WindowCheckout(paymentTransactionId);
+            }
+
+            // Check if RequireJS is available (standard Magento theme)
+            if (typeof require !== 'undefined' && typeof require.config === 'function') {
+                // Standard Magento with RequireJS
+                require(['jquery', 'Reepay'], function($, Reepay) {
+                    initReepayWindowCheckout(Reepay);
+                });
+            } else {
+                // Hyvä theme or other non-RequireJS environment
+                // Check if Reepay is already loaded
+                if (typeof Reepay !== 'undefined') {
+                    initReepayWindowCheckout(Reepay);
+                } else {
+                    // Dynamically load the Reepay script
+                    var script = document.createElement('script');
+                    script.src = '<?= $escaper->escapeUrl($block->getReepayLibUrl()); ?>';
+                    script.async = true;
+                    script.onload = function() {
+                        initReepayWindowCheckout(Reepay);
+                    };
+                    script.onerror = function() {
+                        console.error('Failed to load Reepay checkout script');
+                    };
+                    document.head.appendChild(script);
+                }
+            }
+        })();
     </script>
 </div>

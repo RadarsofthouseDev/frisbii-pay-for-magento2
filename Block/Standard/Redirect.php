@@ -199,4 +199,9 @@ class Redirect extends \Magento\Framework\View\Element\Template
     {
         return $this->priceCurrency;
     }
+
+    public function getReepayLibUrl()
+    {
+        return 'https://checkout.reepay.com/checkout.js';
+    }
 }

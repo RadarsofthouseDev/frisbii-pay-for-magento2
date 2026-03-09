@@ -20,54 +20,90 @@ $priceCurrency = $block->getPriceCurrency();
     </div>
 
     <script>
-        require(['jquery', 'Reepay'], function($, Reepay) {
+        (function() {
+            var paymentTransactionId = '<?= $escaper->escapeJs($block->getPaymentTransactionId()); ?>';
 
-            var rp = new Reepay.EmbeddedCheckout("<?= $escaper->escapeHtml($block->getPaymentTransactionId()); ?>",
-                'rp_container');
+            function initReepayEmbeddedCheckout(ReepayLib) {
+                var rp = new ReepayLib.EmbeddedCheckout(paymentTransactionId, 'rp_container');
 
-            rp.addEventHandler(Reepay.Event.Accept, function(data) {
-                data._isAjax = 1;
-                if ((data.error == undefined ||
-                        data.error == "error.session.INVOICE_ALREADY_PAID" ||
-                        data.error == "invoice_already_settled") &&
-                    data.invoice
-                ) {
-                    $.ajax({
-                        url: '<?= $escaper->escapeUrl($block->getAcceptUrl()); ?>',
-                        method: 'POST',
-                        data: data,
-                    }).done(function(data) {
-                        if (data.status == 'success') {
-                            window.location = data.redirect_url;
-                        }
-                    }).fail(function(err) {
-                        console.log('Ajax: error');
-                        console.log(err);
-                    });
-                }
-            });
-
-            rp.addEventHandler(Reepay.Event.Error, function(data) {
-                // log error
-                $.ajax({
-                    url: '<?= $escaper->escapeUrl($block->getErrorUrl()); ?>',
-                    method: 'POST',
-                    data: data,
-                }).done(function(data) {
-                    if (data.status == 'success') {
-                        window.location = data.redirect_url;
+                rp.addEventHandler(ReepayLib.Event.Accept, function(data) {
+                    data._isAjax = 1;
+                    if ((data.error == undefined ||
+                            data.error == "error.session.INVOICE_ALREADY_PAID" ||
+                            data.error == "invoice_already_settled") &&
+                        data.invoice
+                    ) {
+                        fetch('<?= $escaper->escapeUrl($block->getAcceptUrl()); ?>', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: new URLSearchParams(data)
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    window.location = data.redirect_url;
+                                }
+                            })
+                            .catch(err => {
+                                console.log('Ajax: error');
+                                console.log(err);
+                            });
                     }
-                }).fail(function(err) {
-                    console.log("Ajax error");
-                    console.log(err);
                 });
-            });
 
-            rp.addEventHandler(Reepay.Event.Close, function(data) {
-                // not do anything for overlay close
-            });
+                rp.addEventHandler(ReepayLib.Event.Error, function(data) {
+                    data._isAjax = 1;
+                    fetch('<?= $escaper->escapeUrl($block->getErrorUrl()); ?>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: new URLSearchParams(data)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                window.location = data.redirect_url;
+                            }
+                        })
+                        .catch(err => {
+                            console.log('Ajax error');
+                            console.log(err);
+                        });
+                });
 
-        });
+                rp.addEventHandler(ReepayLib.Event.Close, function(data) {
+                    // not do anything for overlay close
+                });
+            }
+
+            // Check if RequireJS is available (standard Magento theme)
+            if (typeof require !== 'undefined' && typeof require.config === 'function') {
+                require(['Reepay'], function(Reepay) {
+                    initReepayEmbeddedCheckout(Reepay);
+                });
+            } else {
+                // Hyvä theme or other non-RequireJS environment
+                if (typeof Reepay !== 'undefined') {
+                    initReepayEmbeddedCheckout(Reepay);
+                } else {
+                    var script = document.createElement('script');
+                    script.src = '<?= $escaper->escapeUrl($block->getReepayLibUrl()); ?>';
+                    script.async = true;
+                    script.onload = function() {
+                        initReepayEmbeddedCheckout(Reepay);
+                    };
+                    script.onerror = function() {
+                        console.error('Failed to load Reepay checkout script');
+                    };
+                    document.head.appendChild(script);
+                }
+            }
+        })();
     </script>
 
 </div>

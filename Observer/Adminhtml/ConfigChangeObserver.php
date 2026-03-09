@@ -44,7 +44,7 @@ class ConfigChangeObserver implements ObserverInterface
         $allowedPayment = $this->_scopeConfig->getValue($allowedPaymentPath, $scope, $scopeId);
         $mobilePayActive = $this->_scopeConfig->getValue($mobilePayActivePath, $scope, $scopeId);
         if (strpos($allowedPayment, 'mobilepay') !== false || $mobilePayActive == '1') {
-            $this->_messageManager->addWarningMessage(_('The new Vipps MobilePay payment method, which utilizes bank transfers instead of card payments, will replace the old MobilePay Online payment method. Please refer to Vipps MobilePay for more efficient transactions and a better conversion rate.'));
+            $this->_messageManager->addWarningMessage(__('The new Vipps MobilePay payment method, which utilizes bank transfers instead of card payments, will replace the old MobilePay Online payment method. Please refer to Vipps MobilePay for more efficient transactions and a better conversion rate.'));
         }
     }
 }

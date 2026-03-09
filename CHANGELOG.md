@@ -1,4 +1,8 @@
 # Changelog
+## Version 1.2.67 on 09 March 2026
+- Compatibility with Hyvä Theme and Hyvä Checkout.
+- Fixed an error when saving backend configuration.
+
 ## Version 1.2.66 on 25 November 2025
 - Added a new backend configuration "Status of an order after the payment link has been sent", This allows the admin to set the order status when they click the "Send payment link" button or when a backend order is created and the payment link email is sent to the customer.
 
