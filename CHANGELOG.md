@@ -1,4 +1,8 @@
 # Changelog
+## Version 1.2.68 on 20 May 2026
+- Removed the Apple Pay device validation script.
+- Fixed the inline script issue for Google Pay device validation.
+
 ## Version 1.2.67 on 09 March 2026
 - Compatibility with Hyvä Theme and Hyvä Checkout.
 - Fixed an error when saving backend configuration.

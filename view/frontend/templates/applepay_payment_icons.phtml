@@ -2,13 +2,3 @@
 <?php if (!empty($paymentIcon)): ?>
     <img class="reepay-payment-icon" src="<?= $escaper->escapeUrl($paymentIcon); ?>">
 <?php endif; ?>
-
-<script>
-    require(['jquery', 'Reepay'], function($, Reepay) {
-        const isApplePayAvailable = Reepay.isApplePayAvailable();
-        if (!isApplePayAvailable) {
-            console.log("Apple Pay is not available");
-            $('input#reepay_applepay').closest('.payment-method').remove();
-        }
-    });
-</script>

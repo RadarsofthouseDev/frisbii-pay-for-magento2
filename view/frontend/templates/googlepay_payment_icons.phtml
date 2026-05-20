@@ -3,13 +3,24 @@
     <img class="reepay-payment-icon" src="<?= $escaper->escapeUrl($paymentIcon); ?>">
 <?php endif; ?>
 
-<script>
-    require(['jquery', 'Reepay'], function($, Reepay) {
-        Reepay.isGooglePayAvailable().then(isAvailable => {
-            if (!isAvailable) {
-                console.log("Google pay is not available");
-                $('input#reepay_googlepay').closest('.payment-method').remove();
-            }
-        });
+<?php
+$script = <<<JS
+require(['jquery', 'Reepay'], function($, Reepay) {
+    Reepay.isGooglePayAvailable().then(isAvailable => {
+        if (!isAvailable) {
+            console.log("Google pay is not available");
+            $('input#reepay_googlepay').closest('.payment-method').remove();
+        }
     });
-</script>
+});
+JS;
+?>
+
+<?=
+/** @noEscape */
+$secureRenderer->renderTag(
+    'script',
+    [],
+    $script,
+    false
+); ?>
