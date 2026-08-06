@@ -42,6 +42,24 @@ class Info extends MagentoPaymentInfo
             ) {
                 $data['State'] = $additionalInformation['raw_details_info']['state'];
             }
+            if (isset($additionalInformation['age_verification_required']) &&
+                !empty($additionalInformation['age_verification_required'])
+            ) {
+                $key = __('Age verification required')->render();
+                $value = $additionalInformation['age_verification_required'] . ' ' . __('Years') . '.';
+                $data[$key] = $value;
+            }
+            if (isset($additionalInformation['age_verification_result']) &&
+                !empty($additionalInformation['age_verification_result'])
+            ) {
+                $key = __('Age verification result')->render();
+                if (is_numeric($additionalInformation['age_verification_result'])) {
+                    $value = $additionalInformation['age_verification_result'] . ' ' . __('Years') . '.';
+                } else {
+                    $value = __($additionalInformation['age_verification_result']);
+                }
+                $data[$key] = $value;
+            }
         }
 
         return $transport->setData(array_merge($data, $transport->getData()));

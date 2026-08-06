@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.69 on 6 August 2026
+- Added age verification results to webshop orders, order details and data exports.
+
 ## Version 1.2.68 on 20 May 2026
 - Removed the Apple Pay device validation script.
 - Fixed the inline script issue for Google Pay device validation.

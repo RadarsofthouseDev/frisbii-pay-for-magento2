@@ -214,6 +214,7 @@ class Payment extends AbstractHelper
                 'mpo_minimum_user_age' => (int)$ageVerification,
                 'vipps_epayment_minimum_user_age' => (int)$ageVerification
             ];
+            $this->_reepayHelper->updateAgeVerificationRequiredToOrderPayment($order->getPayment(), $ageVerification);
         }
 
         $res = false;

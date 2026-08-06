@@ -13,4 +13,10 @@
             </argument>
         </arguments>
     </virtualType>
+    <type name="Magento\Sales\Model\ResourceModel\Order\Grid\Collection">
+        <plugin name="reepaySalesOrderGrid" type="Radarsofthouse\Reepay\Plugin\SalesOrderGridPlugin" />
+    </type>
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <plugin name="reepaySalesOrderGridExport" type="Radarsofthouse\Reepay\Plugin\SalesOrderGridPlugin" />
+    </type>
 </config>

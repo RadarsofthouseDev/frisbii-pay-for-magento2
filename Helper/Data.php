@@ -1142,4 +1142,45 @@ class Data extends AbstractHelper
         }
         return false;
     }
+
+    /**
+     * Update age verification required to order payment additional information
+     *
+     * @param \Magento\Sales\Model\Order\Payment $payment
+     * @param bool $ageVerificationRequired
+     * @return void
+     */
+    public function updateAgeVerificationRequiredToOrderPayment($payment, $ageVerificationRequired)
+    {
+        try {
+            $payment->setAdditionalInformation('age_verification_required', $ageVerificationRequired);
+            $payment->save();
+        } catch (\Exception $e) {
+            $this->_logger->error('updateAgeVerificationRequiredToOrderPayment() Exception : ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update age verification result to order payment additional information
+     *
+     * @param \Magento\Sales\Model\Order\Payment $payment
+     * @param string $ageVerificationResult
+     * @return void
+     */
+    public function updateAgeVerificationResultToOrderPayment($payment, $ageVerificationResult)
+    {
+        try {
+            if (is_numeric($ageVerificationResult)) {
+                $payment->setAdditionalInformation('age_verification_result', $ageVerificationResult);
+            } elseif ($ageVerificationResult === 'MINIMUM_AGE_VERIFIED') {
+                $payment->setAdditionalInformation('age_verification_result', 'Minimum age verified');
+            } else {
+                $this->_logger->error('updateAgeVerificationResultToOrderPayment() Invalid age verification result type: ' . gettype($ageVerificationResult) . ' with value: ' . $ageVerificationResult);
+                return;
+            }
+            $payment->save();
+        } catch (\Exception $e) {
+            $this->_logger->error('updateAgeVerificationResultToOrderPayment() Exception : ' . $e->getMessage());
+        }
+    }
 }

@@ -95,6 +95,11 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $reepayEmail;
 
     /**
+     * @var \Radarsofthouse\Reepay\Helper\Event
+     */
+    protected $reepayEvent;
+
+    /**
      * @var \Magento\Framework\Registry
      */
     protected $registry;
@@ -103,6 +108,11 @@ class Index extends \Magento\Framework\App\Action\Action
      * @var \Magento\Payment\Helper\Data
      */
     protected $paymentHelper;
+
+    /**
+     * @var \Radarsofthouse\Reepay\Api\SessionRepositoryInterface
+     */
+    protected $sessionRepository;
 
     /**
      * Index constructor
@@ -126,8 +136,10 @@ class Index extends \Magento\Framework\App\Action\Action
      * @param \Radarsofthouse\Reepay\Helper\Charge $reepayCharge
      * @param \Radarsofthouse\Reepay\Helper\SurchargeFee $reepaySurchargeFee
      * @param \Radarsofthouse\Reepay\Helper\Email $reepayEmail
+     * @param \Radarsofthouse\Reepay\Helper\Event $reepayEvent
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Payment\Helper\Data $paymentHelper
+     * @param \Radarsofthouse\Reepay\Api\SessionRepositoryInterface $sessionRepository
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -149,8 +161,10 @@ class Index extends \Magento\Framework\App\Action\Action
         \Radarsofthouse\Reepay\Helper\Charge $reepayCharge,
         \Radarsofthouse\Reepay\Helper\SurchargeFee $reepaySurchargeFee,
         \Radarsofthouse\Reepay\Helper\Email $reepayEmail,
+        \Radarsofthouse\Reepay\Helper\Event $reepayEvent,
         \Magento\Framework\Registry $registry,
-        \Magento\Payment\Helper\Data $paymentHelper
+        \Magento\Payment\Helper\Data $paymentHelper,
+        \Radarsofthouse\Reepay\Api\SessionRepositoryInterface $sessionRepository
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->logger = $logger;
@@ -170,8 +184,10 @@ class Index extends \Magento\Framework\App\Action\Action
         $this->reepayCharge = $reepayCharge;
         $this->reepaySurchargeFee = $reepaySurchargeFee;
         $this->reepayEmail = $reepayEmail;
+        $this->reepayEvent = $reepayEvent;
         $this->registry = $registry;
         $this->paymentHelper = $paymentHelper;
+        $this->sessionRepository = $sessionRepository;
         parent::__construct($context);
 
         // CsrfAwareAction Magento2.3 compatibility
@@ -324,6 +340,8 @@ class Index extends \Magento\Framework\App\Action\Action
 
             $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
             $reepayTransactionData = $this->invoiceHelper->getTransaction($apiKey, $order_id, $data['transaction']);
+
+            $this->processAgeVerification($apiKey, $order);
 
             $chargeRes = $this->reepayCharge->get(
                 $apiKey,
@@ -608,6 +626,8 @@ class Index extends \Magento\Framework\App\Action\Action
                 ];
             }
 
+            $this->processAgeVerification($apiKey, $order);
+
             if (!$order->canCancel()) {
                 $this->logger->addError('Cannot cancel this order');
 
@@ -750,6 +770,9 @@ class Index extends \Magento\Framework\App\Action\Action
             $this->logger->addDebug('order #' . $order_id . ' has been authorized by the webhook');
 
             $this->surchargeFee($order_id, $chargeRes);
+
+            $this->processAgeVerification($apiKey, $order);
+
             return [
                 'status' => 200,
                 'message' => 'order #' . $order_id . ' has been authorized by the webhook',
@@ -784,6 +807,81 @@ class Index extends \Magento\Framework\App\Action\Action
         } else {
             $this->logger->addDebug('NotupdateFeeToOrder', $chargeRes);
             $this->reepayEmail->sendEmail($orderIncrementId);
+        }
+    }
+
+    /**
+     * Get the Frisbii checkout session ID (handle) associated with an order.
+     *
+     * @param \Magento\Sales\Model\Order $order
+     * @return string|null
+     */
+    private function getSessionIdFromOrder($order)
+    {
+        try {
+            $searchResults = $this->sessionRepository->getListByOrderNumber($order->getIncrementId());
+            $items = $searchResults->getItems();
+            if (!empty($items)) {
+                $session = $items[0];
+                return $session->getHandle();
+            }
+        } catch (\Exception $e) {
+            $this->logger->addError('getSessionIdFromOrder() Exception : ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Process age verification result and update to order payment additional information
+     *
+     * Fetches events from the Frisbii session and looks for the
+     * EXTERNAL_AGE_VERIFICATION_RESULT event to extract the verification result.
+     *
+     * @param string $apiKey
+     * @param \Magento\Sales\Model\Order $order
+     */
+    private function processAgeVerification($apiKey, $order)
+    {
+        if ($this->reepayHelper->getConfig('age_verification_enabled', $order->getStoreId())) {
+            $payment = $order->getPayment();
+            $additionalInfo = $payment->getAdditionalInformation();
+            if (!isset($additionalInfo['age_verification_result'])) {
+                $sessionId = $this->getSessionIdFromOrder($order);
+                if ($sessionId) {
+                    try {
+                        $events = $this->reepayEvent->get($apiKey, $sessionId);
+                        $ageVerificationResult = null;
+
+                        if (is_array($events)) {
+                            foreach ($events as $event) {
+                                if (isset($event['name'])
+                                    && $event['name'] === 'EXTERNAL_AGE_VERIFICATION_RESULT'
+                                    && isset($event['data']['result'])
+                                ) {
+                                    $ageVerificationResult = $event['data']['result'];
+                                    $this->logger->addDebug(
+                                        'Age verification result found: ' . $ageVerificationResult
+                                    );
+                                    break;
+                                }
+                            }
+                        }
+
+                        if ($ageVerificationResult !== null) {
+                            $this->reepayHelper->updateAgeVerificationResultToOrderPayment(
+                                $payment,
+                                $ageVerificationResult
+                            );
+                        }
+                    } catch (\Exception $e) {
+                        $this->logger->addError(
+                            'Error fetching events for session ' . $sessionId . ': ' . $e->getMessage()
+                        );
+                    }
+                }
+
+            }
         }
     }
 }
