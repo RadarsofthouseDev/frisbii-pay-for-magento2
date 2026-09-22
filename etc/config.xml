@@ -92,6 +92,17 @@
 				<sort_order>2</sort_order>
 				<model>Radarsofthouse\Reepay\Model\Reepaypaypal</model>
 			</reepay_paypal>
+            <reepay_klarna>
+				<active>0</active>
+				<title>Klarna payment by Frisbii</title>
+				<instructions>Klarna payment</instructions>
+                <show_icon>0</show_icon>
+				<custom_icon/>
+				<allowspecific>0</allowspecific>
+				<specificcountry>0</specificcountry>
+				<sort_order>2</sort_order>
+				<model>Radarsofthouse\Reepay\Model\Reepayklarna</model>
+			</reepay_klarna>
             <reepay_klarnapaynow>
 				<active>0</active>
 				<title>Klarna Pay Now payment by Frisbii</title>

@@ -76,7 +76,15 @@
 																		</item>
 																	</item>
 																</item>
-                                                                <item name="reepay_klarnapaynow" xsi:type="array">
+																<item name="reepay_klarna" xsi:type="array">
+																	<item name="component" xsi:type="string">Radarsofthouse_Reepay/js/view/payment/reepay_klarna</item>
+																	<item name="methods" xsi:type="array">
+																		<item name="reepay_klarna" xsi:type="array">
+																			<item name="isBillingAddressRequired" xsi:type="boolean">true</item>
+																		</item>
+																	</item>
+																</item>
+																<item name="reepay_klarnapaynow" xsi:type="array">
 																	<item name="component" xsi:type="string">Radarsofthouse_Reepay/js/view/payment/reepay_klarnapaynow</item>
 																	<item name="methods" xsi:type="array">
 																		<item name="reepay_klarnapaynow" xsi:type="array">

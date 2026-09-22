@@ -26,6 +26,7 @@ class Paymenticons implements \Magento\Framework\Option\ArrayInterface
             ['value' => 'anyday', 'label' => __('Anyday')],
             ['value' => 'visa', 'label' => __('Visa')],
             ['value' => 'visa-electron', 'label' => __('Visa electron')],
+            ['value' => 'klarna', 'label' => __('Klarna')],
             ['value' => 'klarna-pay-later', 'label' => __('Klarna Pay Later')],
             ['value' => 'klarna-pay-now', 'label' => __('Klarna Pay Now')],
             ['value' => 'klarna-slice-it', 'label' => __('Klarna Slice It')],

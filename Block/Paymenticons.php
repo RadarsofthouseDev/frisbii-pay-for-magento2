@@ -14,6 +14,7 @@ class Paymenticons extends \Magento\Framework\View\Element\Template
         'mobilepay',
         'viabill',
         'anyday',
+        'klarna',
         'klarna-pay-later',
         'klarna-pay-now',
         'klarna-slice-it',
@@ -255,6 +256,28 @@ class Paymenticons extends \Magento\Framework\View\Element\Template
 
         // default icon
         return $this->getViewFileUrl('Radarsofthouse_Reepay::img/payment_icons/paypal.png');
+    }
+
+    /**
+     * Get Klarna payment icon
+     *
+     * @return string|null
+     */
+    public function getKlarnaPaymentIcon()
+    {
+        $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORES;
+        $showIcon = $this->scopeConfig->getValue('payment/reepay_klarna/show_icon', $storeScope);
+        if (!$showIcon) {
+            return null;
+        }
+
+        $customIcon = $this->scopeConfig->getValue('payment/reepay_klarna/custom_icon', $storeScope);
+        if (!empty($customIcon)) {
+            $mediaUrl = $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA);
+            return $mediaUrl . self::CUSTOM_ICON_FOLDER . $customIcon;
+        }
+
+        return $this->getViewFileUrl('Radarsofthouse_Reepay::img/payment_icons/klarna.png');
     }
 
     /**

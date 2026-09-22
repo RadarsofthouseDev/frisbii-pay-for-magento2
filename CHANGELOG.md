@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.70 on 22 September 2026
+- Added a new general Klarna payment method which supports all Klarna payment types.
+
 ## Version 1.2.69 on 6 August 2026
 - Added age verification results to webshop orders, order details and data exports.
 

@@ -1,0 +1,4 @@
+<?php $paymentIcon = $block->getKlarnaPaymentIcon(); ?>
+<?php if (!empty($paymentIcon)): ?>
+    <img class="reepay-payment-icon" src="<?= $escaper->escapeUrl($paymentIcon); ?>">
+<?php endif; ?>

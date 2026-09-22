@@ -23,6 +23,7 @@ class Allowwedpayment implements \Magento\Framework\Option\ArrayInterface
             ['value' => 'vipps_epayment', 'label' => __('Vipps MobilePay')],
             ['value' => 'viabill', 'label' => __('ViaBill')],
             ['value' => 'anyday', 'label' => __('Anyday')],
+            ['value' => 'klarna', 'label' => __('Klarna')],
             ['value' => 'klarna_pay_later', 'label' => __('Klarna Pay Later')],
             ['value' => 'klarna_pay_now', 'label' => __('Klarna Pay Now')],
             ['value' => 'klarna_slice_it', 'label' => __('Klarna Slice It')],

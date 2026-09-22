@@ -17,6 +17,7 @@ class Data extends AbstractHelper
         'reepay_mobilepay',
         'reepay_applepay',
         'reepay_paypal',
+        'reepay_klarna',
         'reepay_klarnapaynow',
         'reepay_klarnapaylater',
         'reepay_klarnasliceit',
@@ -85,6 +86,7 @@ class Data extends AbstractHelper
         'mpo' => 'reepay_mobilepay',
         'applepay' => 'reepay_applepay',
         'paypal' => 'reepay_paypal',
+        'klarna' => 'reepay_klarna',
         'klarna_pay_now' => 'reepay_klarnapaynow',
         'klarna_pay_later' => 'reepay_klarnapaylater',
         'klarna_slice_it' => 'reepay_klarnasliceit',
@@ -655,6 +657,9 @@ class Data extends AbstractHelper
                 break;
             case 'reepay_paypal':
                 $paymentMethods[] = 'paypal';
+                break;
+            case 'reepay_klarna':
+                $paymentMethods[] = 'klarna';
                 break;
             case 'reepay_klarnapaynow':
                 $paymentMethods[] = 'klarna_pay_now';

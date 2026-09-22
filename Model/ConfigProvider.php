@@ -62,6 +62,8 @@ class ConfigProvider implements ConfigProviderInterface
                 ->setTemplate('Radarsofthouse_Reepay::applepay_payment_icons.phtml')->toHtml(),
             'paypal_payment_icons' => $this->_layout->createBlock(\Radarsofthouse\Reepay\Block\Paymenticons::class)
                 ->setTemplate('Radarsofthouse_Reepay::paypal_payment_icons.phtml')->toHtml(),
+            'klarna_payment_icons' => $this->_layout->createBlock(\Radarsofthouse\Reepay\Block\Paymenticons::class)
+                ->setTemplate('Radarsofthouse_Reepay::klarna_payment_icons.phtml')->toHtml(),
             'klarnapaynow_payment_icons' => $this->_layout->createBlock(\Radarsofthouse\Reepay\Block\Paymenticons::class)
                 ->setTemplate('Radarsofthouse_Reepay::klarnapaynow_payment_icons.phtml')->toHtml(),
             'klarnapaylater_payment_icons' => $this->_layout->createBlock(\Radarsofthouse\Reepay\Block\Paymenticons::class)
@@ -204,6 +206,11 @@ class ConfigProvider implements ConfigProviderInterface
             ),
             "reepay_paypal_instructions" => $this->_scopeConfig->getValue(
                 'payment/reepay_paypal/instructions',
+                \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+                $store_id
+            ),
+            "reepay_klarna_instructions" => $this->_scopeConfig->getValue(
+                'payment/reepay_klarna/instructions',
                 \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
                 $store_id
             ),
