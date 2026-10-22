@@ -779,6 +779,13 @@ class Data extends AbstractHelper
                 }
         }
 
+        if (
+            !empty(array_intersect(['card', 'mc', 'visa'], $paymentMethods))
+            && !in_array('click_to_pay', $paymentMethods, true)
+        ) {
+            $paymentMethods[] = 'click_to_pay';
+        }
+
         return $paymentMethods;
     }
 

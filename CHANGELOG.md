@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.71 on 22 October 2026
+- Added 'click_to_pay' to the payment methods payload when it includes visa, mc, or card.
+
 ## Version 1.2.70 on 22 September 2026
 - Added a new general Klarna payment method which supports all Klarna payment types.
 
