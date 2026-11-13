@@ -1,0 +1,103 @@
+<?php
+/* @var $block \Radarsofthouse\Reepay\Block\System\Config\ApiKeyAccount */
+$environment = $block->getEnvironment();
+?>
+<div id="<?= $escaper->escapeHtmlAttr($block->getStatusId()) ?>">
+    <img class="reepay-api-key-account-updated" hidden="hidden" alt="Loaded" style="margin:-3px 5px"
+        src="<?= $escaper->escapeUrl($block->getViewFileUrl('images/rule_component_apply.gif')) ?>" />
+    <img class="reepay-api-key-account-error" hidden="hidden" alt="Error" style="margin:-1px 5px"
+        src="<?= $escaper->escapeUrl($block->getViewFileUrl('images/rule_component_remove.gif')) ?>" />
+    <span class="reepay-api-key-account-message">Checking account...</span>
+</div>
+<script>
+    require(['jquery'], function(jQuery) {
+        jQuery(function() {
+            var environment = '<?= $escaper->escapeJs($environment) ?>';
+            var statusContainer = jQuery('#<?= $escaper->escapeHtmlAttr($block->getStatusId()) ?>');
+            var messageElement = statusContainer.find('.reepay-api-key-account-message');
+            var updatedIcon = statusContainer.find('.reepay-api-key-account-updated');
+            var errorIcon = statusContainer.find('.reepay-api-key-account-error');
+
+            var renderStatus = function(response, data) {
+                updatedIcon.hide();
+                errorIcon.hide();
+                var responseData = response.responseJSON || data;
+                if (response.status < 200 || response.status >= 300 || !responseData) {
+                    messageElement.text('Unable to connect to Frisbii.').css('color', '#e22626');
+                    errorIcon.show();
+                    return;
+                }
+
+                var accountLabels = {};
+                var invalidApiKey = false;
+                var connectionFailed = false;
+                var frisbiiError = false;
+                (responseData.statuses || []).forEach(function(status) {
+                    if (status.environment !== environment) {
+                        return;
+                    }
+                    if (status.account) {
+                        accountLabels[status.account.name + ' (' + status.account.handle + ')'] = true;
+                    } else if (status.error === 'invalid_api_key') {
+                        invalidApiKey = true;
+                    } else if (status.error === 'connection') {
+                        connectionFailed = true;
+                    } else {
+                        frisbiiError = true;
+                    }
+                });
+
+                var labels = Object.keys(accountLabels);
+                if (labels.length > 0 && !invalidApiKey && !connectionFailed && !frisbiiError) {
+                    updatedIcon.show();
+                    messageElement.text(labels.join('; ')).css('color', '#32CD32');
+                } else if (invalidApiKey) {
+                    messageElement.text('Invalid API key.').css('color', '#e22626');
+                    errorIcon.show();
+                } else if (connectionFailed) {
+                    messageElement.text('Unable to connect to Frisbii.').css('color', '#e22626');
+                    errorIcon.show();
+                } else if (frisbiiError) {
+                    messageElement.text('Unable to verify API key.').css('color', '#e22626');
+                    errorIcon.show();
+                } else {
+                    messageElement.text('Not configured.').css('color', '#e22626');
+                    errorIcon.show();
+                }
+            };
+
+            window.reepayApiKeyAccountCallbacks = window.reepayApiKeyAccountCallbacks || [];
+            window.reepayApiKeyAccountCallbacks.push(renderStatus);
+
+            if (window.reepayApiKeyAccountResponse) {
+                renderStatus(window.reepayApiKeyAccountResponse);
+                return;
+            }
+
+            if (window.reepayApiKeyAccountRequestStarted) {
+                return;
+            }
+
+            window.reepayApiKeyAccountRequestStarted = true;
+
+            jQuery.ajax({
+                url: '<?= $escaper->escapeUrl($block->getAjaxUrl()) ?>',
+                type: 'GET',
+                dataType: 'json',
+                cache: false,
+                success: function(data, textStatus, jqXHR) {
+                    window.reepayApiKeyAccountResponse = jqXHR;
+                    window.reepayApiKeyAccountCallbacks.forEach(function(callback) {
+                        callback(jqXHR, data);
+                    });
+                },
+                error: function(jqXHR) {
+                    window.reepayApiKeyAccountResponse = jqXHR;
+                    window.reepayApiKeyAccountCallbacks.forEach(function(callback) {
+                        callback(jqXHR);
+                    });
+                }
+            });
+        });
+    });
+</script>

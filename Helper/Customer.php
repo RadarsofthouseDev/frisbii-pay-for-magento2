@@ -146,7 +146,7 @@ class Customer extends AbstractHelper
                 $handle = $this->search($apiKey, $customer->getEmail());
             }
         } catch (\Exception $e) {
-            $this->logger->addError("Error : getPaymentCardsByCustomer : ".$e->getMessage());
+            $this->logger->addError("Error : getPaymentCardsByCustomer : " . $e->getMessage());
         }
         if ($handle) {
             try {
@@ -159,15 +159,44 @@ class Customer extends AbstractHelper
                     $this->customerRepository->save($reepayCustomer);
                 }
             } catch (LocalizedException $exception) {
-                $this->logger->addError("Error : getPaymentCardsByCustomer : ".$exception->getMessage());
+                $this->logger->addError("Error : getPaymentCardsByCustomer : " . $exception->getMessage());
             }
             try {
                 return $this->getPaymentCards($apiKey, $handle);
             } catch (\Exception $e) {
-                $this->logger->addError("Error : getPaymentCardsByCustomer -> getPaymentCards : ".$e->getMessage());
+                $this->logger->addError("Error : getPaymentCardsByCustomer -> getPaymentCards : " . $e->getMessage());
             }
         }
         return [];
+    }
+
+    /**
+     * Check whether a saved payment card belongs to the Magento customer.
+     *
+     * @param string $apiKey
+     * @param \Magento\Customer\Api\Data\CustomerInterface $customer
+     * @param string $cardId
+     * @return bool
+     */
+    public function isPaymentCardOwnedByCustomer($apiKey, $customer, $cardId)
+    {
+        $cards = $this->getPaymentCardsByCustomer($apiKey, $customer);
+        if (!is_array($cards)) {
+            return false;
+        }
+
+        foreach ($cards as $card) {
+            if (
+                is_array($card)
+                && isset($card['id'])
+                && is_scalar($card['id'])
+                && hash_equals((string)$card['id'], (string)$cardId)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -209,7 +238,7 @@ class Customer extends AbstractHelper
             $handle = $reepayCustomer->getHandle();
             return $this->deletePaymentCard($apiKey, $handle, $cardId);
         } catch (NoSuchEntityException | LocalizedException | \Exception $e) {
-            $this->logger->addError("Error : deletePaymentCardByCustomerId : ".$e->getMessage());
+            $this->logger->addError("Error : deletePaymentCardByCustomerId : " . $e->getMessage());
         }
         return false;
     }

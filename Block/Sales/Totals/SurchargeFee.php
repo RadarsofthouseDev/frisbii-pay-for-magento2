@@ -125,39 +125,32 @@ class SurchargeFee extends \Magento\Framework\View\Element\Template
 
         $isReepayPaymentMethod = $this->_helperData->isReepayPaymentMethod($paymentMethod);
         $isEnable = $this->_helperData->isSurchargeFeeEnabled($storeId);
-        $surchargeFee = $this->getSource()->getReepaySurchargeFee();
-        $this->_helperLogger->addDebug(
-            __METHOD__,
-            ['PaymentMethod' => $paymentMethod,
-            'isReepayPaymentMethod' => $isReepayPaymentMethod,
-            'SurchargeFeeEnabled' => ($isEnable ? 'true' : 'false'),
-            'SurchargeFee' => $surchargeFee]
-        );
+        $surchargeFeeAmount = (float)$this->getSource()->getReepaySurchargeFee();
 
-        if (empty($surchargeFee) || $surchargeFee == 0) {
+        if ($surchargeFeeAmount == 0) {
             if (!$isEnable || !$isReepayPaymentMethod) {
-                $this->_helperLogger->addDebug('Sale ReepaySurchargeFee Total Disabled');
                 return $this;
             }
         }
 
-        $surchargeFee = new \Magento\Framework\DataObject(
+        $surchargeFeeTotal = new \Magento\Framework\DataObject(
             [
                 'code' => 'reepay_surcharge_fee',
                 'strong' => false,
-                'value' => $surchargeFee,
+                'value' => $surchargeFeeAmount,
                 'label' => __('Surcharge Fee'),
             ]
         );
-        $this->_helperLogger->addDebug('Total', [
-            'code' => 'reepay_surcharge_fee',
-            'strong' => false,
-            'value' => $surchargeFee,
-            'label' => __('Surcharge Fee'),
-        ]);
+        if ($surchargeFeeAmount > 0) {
+            $this->_helperLogger->addDebug('Displayed surcharge fee total.', [
+                'order_id' => $this->_order->getId(),
+                'order_increment_id' => $this->_order->getIncrementId(),
+                'surcharge_fee' => $surchargeFeeAmount
+            ]);
+        }
 
-//        $parent->addTotal($surchargeFee, 'reepay_surcharge_fee');
-        $this->getParentBlock()->addTotal($surchargeFee, 'reepay_surcharge_fee');
+        //        $parent->addTotal($surchargeFee, 'reepay_surcharge_fee');
+        $this->getParentBlock()->addTotal($surchargeFeeTotal, 'reepay_surcharge_fee');
 
         return $this;
     }

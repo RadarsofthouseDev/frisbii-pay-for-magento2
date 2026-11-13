@@ -9,6 +9,7 @@
                     <resource id="Radarsofthouse_Reepay::Customer_update" title="Update Frisbii Customer Handle" sortOrder="30"/>
                     <resource id="Radarsofthouse_Reepay::Customer_view" title="View Frisbii Customer Handle" sortOrder="40"/>
                 </resource>
+                <resource id="Radarsofthouse_Reepay::config" title="Update Frisbii Webhook URL" sortOrder="11"/>
             </resource>
         </resources>
     </acl>

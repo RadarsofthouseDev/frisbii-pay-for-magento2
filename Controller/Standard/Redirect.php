@@ -128,14 +128,14 @@ class Redirect extends \Magento\Framework\App\Action\Action
                     if ($save_card_type == 0) {
                         // CIT (Customer Initiated Transaction)
 
-                        $this->_logger->addDebug('use saved credit card : CIT :' . $order->getReepayCreditCard());
+                        $this->_logger->addDebug('Use saved credit card for CIT.');
 
                         $paymentTransactionId = null;
                         $paymentTransactionId = $this->_reepayPayment->createReepaySession(
                             $order,
                             $order->getReepayCreditCard()
                         );
-                        $this->_logger->addDebug('$paymentTransactionId : ' . $paymentTransactionId);
+                        $this->_logger->addDebug('Created payment session for CIT.');
 
                         $pageTitleConfig = $this->_reepayHelper->getConfig('title', $order->getStoreId());
                         $resultPage->getConfig()
@@ -152,7 +152,7 @@ class Redirect extends \Magento\Framework\App\Action\Action
                     } else {
                         // MIT (Merchant Initiated Transaction)
 
-                        $this->_logger->addDebug('use saved credit card : MIT :' . $order->getReepayCreditCard());
+                        $this->_logger->addDebug('Use saved credit card for MIT.');
 
                         $createCharge = $this->_reepayPayment->createChargeWithExistCustomer(
                             $order,
@@ -182,7 +182,7 @@ class Redirect extends \Magento\Framework\App\Action\Action
             $paymentTransactionId = null;
             $paymentTransactionId = $this->_reepayPayment->createReepaySession($order);
 
-            $this->_logger->addDebug('$paymentTransactionId : ' . $paymentTransactionId);
+            $this->_logger->addDebug('Created payment session.');
 
             // render reepay/standard/redirect
             $pageTitleConfig = $this->_reepayHelper->getConfig('title', $order->getStoreId());

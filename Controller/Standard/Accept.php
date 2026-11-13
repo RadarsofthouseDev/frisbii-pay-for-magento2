@@ -22,6 +22,11 @@ class Accept extends \Magento\Framework\App\Action\Action
     protected $_reepaySession;
 
     /**
+     * @var \Radarsofthouse\Reepay\Helper\PaymentSessionValidator
+     */
+    protected $_paymentSessionValidator;
+
+    /**
      * @var \Radarsofthouse\Reepay\Helper\Logger
      */
     protected $_logger;
@@ -89,6 +94,7 @@ class Accept extends \Magento\Framework\App\Action\Action
      * @param \Magento\Sales\Api\Data\OrderInterface $orderInterface
      * @param \Radarsofthouse\Reepay\Helper\Charge $reepayCharge
      * @param \Radarsofthouse\Reepay\Helper\Session $reepaySession
+     * @param \Radarsofthouse\Reepay\Helper\PaymentSessionValidator $paymentSessionValidator
      * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
      * @param \Magento\Framework\Controller\Result\RedirectFactory $resultRedirectFactory
      * @param \Radarsofthouse\Reepay\Helper\Data $reepayHelper
@@ -106,6 +112,7 @@ class Accept extends \Magento\Framework\App\Action\Action
         \Magento\Sales\Api\Data\OrderInterface $orderInterface,
         \Radarsofthouse\Reepay\Helper\Charge $reepayCharge,
         \Radarsofthouse\Reepay\Helper\Session $reepaySession,
+        \Radarsofthouse\Reepay\Helper\PaymentSessionValidator $paymentSessionValidator,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
         \Magento\Framework\Controller\Result\RedirectFactory $resultRedirectFactory,
         \Radarsofthouse\Reepay\Helper\Data $reepayHelper,
@@ -122,6 +129,7 @@ class Accept extends \Magento\Framework\App\Action\Action
         $this->_url = $context->getUrl();
         $this->_reepayCharge = $reepayCharge;
         $this->_reepaySession = $reepaySession;
+        $this->_paymentSessionValidator = $paymentSessionValidator;
         $this->_resultJsonFactory = $resultJsonFactory;
         $this->_resultRedirectFactory = $resultRedirectFactory;
         $this->_reepayHelper = $reepayHelper;
@@ -142,21 +150,56 @@ class Accept extends \Magento\Framework\App\Action\Action
     public function execute()
     {
         $params = $this->_request->getParams();
-        $orderId = $params['invoice'];
-        $id = $params['id'];
-        $isAjax = 0;
-        if (isset($params['_isAjax'])) {
-            $isAjax = 1;
-        }
+        $orderId = isset($params['invoice']) && is_scalar($params['invoice'])
+            ? trim((string)$params['invoice'])
+            : '';
+        $id = isset($params['id']) && is_scalar($params['id'])
+            ? trim((string)$params['id'])
+            : '';
+        $isAjax = isset($params['_isAjax']) ? 1 : 0;
 
-        $this->_logger->addDebug(__METHOD__, $params);
+        $this->_logger->addDebug(__METHOD__, [
+            'invoice' => $orderId,
+            'is_ajax' => (bool)$isAjax,
+        ]);
 
-        if (empty($params['invoice']) || empty($params['id'])) {
-            return;
+        if (!$this->_paymentSessionValidator->isValid($orderId, $id)) {
+            $this->_logger->addError('Rejected unbound payment accept callback.', [
+                'invoice' => $orderId,
+            ]);
+
+            return $this->rejectCallback($isAjax);
         }
 
         $order = $this->_orderInterface->loadByIncrementId($orderId);
+        if (!$order->getId()) {
+            return $this->rejectCallback($isAjax);
+        }
+
         $apiKey = $this->_reepayHelper->getApiKey($order->getStoreId());
+
+        try {
+            $charge = $this->_reepayCharge->get($apiKey, $order->getIncrementId());
+        } catch (\Exception $exception) {
+            $this->_logger->addError('Unable to verify Frisbii charge for payment accept callback.', [
+                'invoice' => $order->getIncrementId(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return $this->rejectCallback($isAjax);
+        }
+
+        $chargeState = is_array($charge) && isset($charge['state'])
+            ? (string)$charge['state']
+            : '';
+        if (!in_array($chargeState, ['authorized', 'settled'], true)) {
+            $this->_logger->addError('Rejected payment accept callback with unsuccessful Frisbii charge state.', [
+                'invoice' => $order->getIncrementId(),
+                'state' => $chargeState !== '' ? $chargeState : 'unknown',
+            ]);
+
+            return $this->rejectCallback($isAjax);
+        }
 
         $this->_checkoutSession->setLastOrderId($order->getId());
         $this->_checkoutSession->setLastRealOrderId($order->getIncrementId());
@@ -183,8 +226,29 @@ class Accept extends \Magento\Framework\App\Action\Action
         if (!empty($order->getRemoteIp())) {
             // place online
             return $this->redirect('checkout/onepage/success');
-        }// place by admin
+        } // place by admin
         return $this->redirect('reepay/standard/success');
+    }
+
+    /**
+     * Reject a callback without revealing whether the order exists.
+     *
+     * @param bool $isAjax
+     * @return \Magento\Framework\Controller\ResultInterface
+     */
+    private function rejectCallback($isAjax)
+    {
+        if (!$isAjax) {
+            return $this->redirect('checkout/cart');
+        }
+
+        return $this->_resultJsonFactory->create()
+            ->setHttpResponseCode(400)
+            ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0', true)
+            ->setData([
+                'status' => 'error',
+                'message' => 'Invalid payment session.',
+            ]);
     }
 
     /**

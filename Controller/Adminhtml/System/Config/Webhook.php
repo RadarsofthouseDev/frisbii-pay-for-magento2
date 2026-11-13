@@ -13,6 +13,7 @@ use Radarsofthouse\Reepay\Helper\Data as DataHelper;
 
 class Webhook extends Action
 {
+    const ADMIN_RESOURCE = 'Radarsofthouse_Reepay::config';
 
     /**
      * @var JsonFactory
@@ -83,33 +84,46 @@ class Webhook extends Action
 
         try {
             $apiKeys = [];
+            $seenApiKeys = [];
             $stores = $this->storeManager->getStores();
             foreach ($stores as $store) {
                 $storeId = $store->getId();
                 foreach (['private_key', 'private_key_test'] as $keyType) {
-                    $apiKey = $this->helper->getConfig($keyType, $storeId);
-                    if (!empty($apiKey)) {
-                        $apiKeys[] = $apiKey;
+                    $apiKey = $this->helper->getConfiguredApiKey($keyType, $storeId);
+                    $apiKeyFingerprint = $apiKey !== '' ? hash('sha256', $apiKey) : '';
+                    if ($apiKeyFingerprint !== '' && !isset($seenApiKeys[$apiKeyFingerprint])) {
+                        $seenApiKeys[$apiKeyFingerprint] = true;
+                        $apiKeys[] = [
+                            'store_id' => $storeId,
+                            'key_type' => $keyType,
+                            'api_key' => $apiKey,
+                        ];
                     }
                 }
             }
-            $apiKeys = array_unique($apiKeys);
 
             $failure = [];
             $success = [];
-            foreach ($apiKeys as $apiKey) {
-                $updatedUrls = $this->webhookHelper->updateUrl($apiKey);
+            foreach ($apiKeys as $apiKeyData) {
+                $updatedUrls = $this->webhookHelper->updateUrl($apiKeyData['api_key']);
+                $keyReference = [
+                    'store_id' => $apiKeyData['store_id'],
+                    'key_type' => $apiKeyData['key_type'],
+                ];
                 if ($updatedUrls === false) {
-                    $failure[] = $apiKey;
+                    $failure[] = array_merge($keyReference, [
+                        'error' => $this->webhookHelper->getLastError(),
+                    ]);
                 } else {
-                    $success[$apiKey] = $updatedUrls;
+                    $success[] = array_merge($keyReference, ['urls' => $updatedUrls]);
                 }
             }
 
             if (!empty($failure)) {
-                $this->logger->addError('Failed to update webhook URLs', ['failed_keys' => $failure]);
+                $this->logger->addError('Failed to update webhook URLs', ['failed_keys' => $failure], true);
                 return $result->setData([
                     'success' => false,
+                    'message' => 'Unable to update webhook URLs for one or more API keys.',
                     'failed_keys' => $failure,
                     'time' => $lastUpdateTime
                 ]);
@@ -122,19 +136,15 @@ class Webhook extends Action
                 'time' => $lastUpdateTime
             ]);
         } catch (\Exception $e) {
-            $this->logger->addError($e->getMessage());
+            $this->logger->addError('Unexpected error while updating webhook URLs.', [
+                'error' => $e->getMessage(),
+            ]);
         }
 
-        return $result->setData(['success' => false, 'time' => $lastUpdateTime]);
-    }
-
-    /**
-     * Is Allowed
-     *
-     * @return boolean
-     */
-    protected function _isAllowed()
-    {
-        return $this->_authorization->isAllowed('Radarsofthouse_Reepay::config');
+        return $result->setData([
+            'success' => false,
+            'message' => 'Unexpected error while updating webhook URLs. Check the server log.',
+            'time' => $lastUpdateTime,
+        ]);
     }
 }

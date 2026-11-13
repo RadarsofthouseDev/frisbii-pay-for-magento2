@@ -1,39 +1,55 @@
 <?php /* @var $block \Radarsofthouse\Reepay\Block\System\Config\Webhook */ ?>
 <script>
-    require([
-        'jquery',
-        'prototype'
-    ], function(jQuery) {
+    require(['jquery'], function(jQuery) {
         var webhookSpan = jQuery('#webhook_span');
+        var webhookMessage = webhookSpan.find('.webhook_message_span');
         jQuery('#webhook_button').click(function() {
-            var params = {};
-            new Ajax.Request('<?= $escaper->escapeUrl($block->getAjaxUrl()) ?>', {
-                parameters: params,
-                loaderArea: false,
-                asynchronous: true,
-                onCreate: function() {
+            jQuery.ajax({
+                url: '<?= $escaper->escapeUrl($block->getAjaxUrl()) ?>',
+                type: 'GET',
+                dataType: 'json',
+                beforeSend: function() {
                     webhookSpan.find('.updated').hide();
                     webhookSpan.find('.processing').show();
-                    jQuery('.webhook_message_span').text('');
+                    webhookMessage.text('').css('color', '#e22626');
                 },
-                onSuccess: function(response) {
+                success: function(data, textStatus, jqXHR) {
                     webhookSpan.find('.processing').hide();
 
-                    var resultText = '';
-                    if (response.status > 200) {
-                        resultText = response.statusText;
+                    var jsonResponse = jqXHR.responseJSON || data || {};
+                    var resultText = jsonResponse.message || 'Unable to update webhook URLs.';
+                    if (jsonResponse.success === true) {
+                        resultText = 'Updated.';
+                        webhookSpan.find('.updated').show();
+                        webhookMessage.text(resultText).css('color', '#79a22e');
                     } else {
-                        let jsonResponse = response.responseJSON;
-                        if (jsonResponse.success === true) {
-                            // resultText = 'Updated at:'+jsonResponse.time;
-                            resultText = 'Updated.';
-                            webhookSpan.find('.updated').show();
-                        } else {
-                            resultText = 'Something went wrong!';
-                            webhookSpan.find('.processing').hide();
+                        var failedKeys = jsonResponse.failed_keys || [];
+                        if (failedKeys.length > 0) {
+                            resultText += ' Failed: ' + failedKeys.length + '.';
+                        }
+                        webhookMessage.text(resultText).css('color', '#e22626');
+                        if (window.console && typeof window.console.error === 'function') {
+                            window.console.error('[Reepay] Webhook URL update failed.', {
+                                status: jqXHR.status,
+                                response: jsonResponse
+                            });
                         }
                     }
-                    jQuery('.webhook_message_span').text(resultText);
+                },
+                error: function(jqXHR) {
+                    webhookSpan.find('.processing').hide();
+                    var jsonResponse = jqXHR.responseJSON || {};
+                    var resultText = jsonResponse.message ||
+                        jqXHR.statusText ||
+                        'Unable to update webhook URLs.';
+                    webhookMessage.text(resultText).css('color', '#e22626');
+                    if (window.console && typeof window.console.error === 'function') {
+                        window.console.error('[Reepay] Webhook URL request failed.', {
+                            status: jqXHR.status,
+                            statusText: jqXHR.statusText,
+                            response: jsonResponse
+                        });
+                    }
                 }
             });
         });

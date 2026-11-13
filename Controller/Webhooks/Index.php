@@ -4,6 +4,9 @@ namespace Radarsofthouse\Reepay\Controller\Webhooks;
 
 class Index extends \Magento\Framework\App\Action\Action
 {
+    const MAX_WEBHOOK_AGE = 259200;
+    const MAX_WEBHOOK_CLOCK_SKEW = 300;
+
     /**
      * @var \Magento\Framework\View\Result\PageFactory
      */
@@ -115,6 +118,16 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $sessionRepository;
 
     /**
+     * @var \Radarsofthouse\Reepay\Model\ResourceModel\Webhook
+     */
+    protected $webhookResource;
+
+    /**
+     * @var array
+     */
+    protected $webhookSecretResolution = [];
+
+    /**
      * Index constructor
      *
      * @param \Magento\Framework\App\Action\Context $context
@@ -140,6 +153,7 @@ class Index extends \Magento\Framework\App\Action\Action
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Payment\Helper\Data $paymentHelper
      * @param \Radarsofthouse\Reepay\Api\SessionRepositoryInterface $sessionRepository
+     * @param \Radarsofthouse\Reepay\Model\ResourceModel\Webhook $webhookResource
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -164,7 +178,8 @@ class Index extends \Magento\Framework\App\Action\Action
         \Radarsofthouse\Reepay\Helper\Event $reepayEvent,
         \Magento\Framework\Registry $registry,
         \Magento\Payment\Helper\Data $paymentHelper,
-        \Radarsofthouse\Reepay\Api\SessionRepositoryInterface $sessionRepository
+        \Radarsofthouse\Reepay\Api\SessionRepositoryInterface $sessionRepository,
+        \Radarsofthouse\Reepay\Model\ResourceModel\Webhook $webhookResource
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->logger = $logger;
@@ -188,6 +203,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $this->registry = $registry;
         $this->paymentHelper = $paymentHelper;
         $this->sessionRepository = $sessionRepository;
+        $this->webhookResource = $webhookResource;
         parent::__construct($context);
 
         // CsrfAwareAction Magento2.3 compatibility
@@ -209,10 +225,52 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     public function execute()
     {
+        if (!$this->getRequest()->isPost()) {
+            return $this->createWebhookResponse(405, 'Webhook endpoint accepts POST requests only.');
+        }
+
         $request = $this->getRequest()->getContent();
         $receiveData = json_decode($request, true);
+        if (!is_array($receiveData)) {
+            return $this->createWebhookResponse(400, 'Invalid webhook request.');
+        }
 
-        $this->logger->addDebug(__METHOD__, $receiveData);
+        $validation = $this->validateWebhook($receiveData);
+        if (!$validation['valid']) {
+            return $this->createWebhookResponse($validation['status'], $validation['message']);
+        }
+
+        try {
+            $claimStatus = $this->webhookResource->claim(
+                $validation['webhook_id'],
+                $validation['event_id'],
+                $validation['event_type']
+            );
+        } catch (\Exception $e) {
+            $this->logger->addError('Unable to record webhook idempotency state.', [
+                'webhook_id' => $validation['webhook_id'],
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->createWebhookResponse(503, 'Webhook is temporarily unavailable.');
+        }
+
+        if ($claimStatus === \Radarsofthouse\Reepay\Model\ResourceModel\Webhook::CLAIM_PROCESSED) {
+            return $this->createWebhookResponse(200, 'Webhook has already been processed.');
+        }
+
+        if ($claimStatus !== \Radarsofthouse\Reepay\Model\ResourceModel\Webhook::CLAIM_NEW) {
+            return $this->createWebhookResponse(503, 'Webhook is already being processed.');
+        }
+
+        $this->logger->addDebug(__METHOD__, [
+            'webhook_id' => $validation['webhook_id'],
+            'event_id' => $validation['event_id'],
+            'event_type' => $validation['event_type'],
+            'invoice' => isset($receiveData['invoice']) && is_scalar($receiveData['invoice'])
+                ? (string)$receiveData['invoice']
+                : null,
+        ]);
 
         try {
             if (!array_key_exists('event_type', $receiveData)) {
@@ -279,6 +337,25 @@ class Index extends \Magento\Framework\App\Action\Action
                     break;
             }
 
+            if ((int)$response['status'] >= 200 && (int)$response['status'] < 300) {
+                try {
+                    if (!$this->webhookResource->markProcessed($validation['webhook_id'])) {
+                        $this->releaseWebhook($validation['webhook_id']);
+                        return $this->createWebhookResponse(503, 'Webhook state could not be recorded.');
+                    }
+                } catch (\Exception $e) {
+                    $this->releaseWebhook($validation['webhook_id']);
+                    $this->logger->addError('Unable to mark webhook as processed.', [
+                        'webhook_id' => $validation['webhook_id'],
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    return $this->createWebhookResponse(503, 'Webhook state could not be recorded.');
+                }
+            } else {
+                $this->releaseWebhook($validation['webhook_id']);
+            }
+
             $response['message'] = 'Magento : ' . $response['message'];
             $result = $this->resultJsonFactory->create();
             $result->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0', true);
@@ -287,6 +364,7 @@ class Index extends \Magento\Framework\App\Action\Action
 
             return  $result;
         } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $this->releaseWebhook($validation['webhook_id']);
             $log['response_error'] = [
                 'error_code' => $e->getCode(),
                 'message' => $e->getMessage(),
@@ -296,6 +374,7 @@ class Index extends \Magento\Framework\App\Action\Action
 
             throw new \Exception($e->getMessage(), (!empty($e->getCode()) ? (int)$e->getCode() : 500));
         } catch (\Exception $e) {
+            $this->releaseWebhook($validation['webhook_id']);
             $log['response_error'] = [
                 'error_code' => $e->getCode(),
                 'message' => $e->getMessage(),
@@ -304,6 +383,200 @@ class Index extends \Magento\Framework\App\Action\Action
             $this->logger->addError(__METHOD__, $log);
 
             throw new \Exception($e->getMessage(), (!empty($e->getCode()) ? (int)$e->getCode() : 500));
+        }
+    }
+
+    /**
+     * Validate the Frisbii webhook signature and timestamp.
+     *
+     * @param array $data
+     * @return array
+     */
+    private function validateWebhook(array $data)
+    {
+        $webhookId = isset($data['id']) && is_scalar($data['id']) ? (string)$data['id'] : '';
+        $eventId = isset($data['event_id']) && is_scalar($data['event_id']) ? (string)$data['event_id'] : '';
+        $eventType = isset($data['event_type']) && is_scalar($data['event_type'])
+            ? (string)$data['event_type']
+            : '';
+        $timestamp = isset($data['timestamp']) && is_scalar($data['timestamp'])
+            ? (string)$data['timestamp']
+            : '';
+        $signature = isset($data['signature']) && is_scalar($data['signature'])
+            ? (string)$data['signature']
+            : '';
+
+        if (
+            trim($webhookId) === '' ||
+            trim($eventId) === '' ||
+            trim($eventType) === '' ||
+            trim($timestamp) === '' ||
+            !preg_match('/\A[a-f0-9]{64}\z/i', $signature)
+        ) {
+            $this->logger->addError('Rejected webhook with missing or malformed authentication fields.', [
+                'webhook_id_present' => trim($webhookId) !== '',
+                'event_id_present' => trim($eventId) !== '',
+                'event_type_present' => trim($eventType) !== '',
+                'timestamp_present' => trim($timestamp) !== '',
+                'signature_length' => strlen($signature),
+            ]);
+
+            return [
+                'valid' => false,
+                'status' => 401,
+                'message' => 'Invalid webhook request.',
+            ];
+        }
+
+        try {
+            $timestampValue = (new \DateTimeImmutable($timestamp))->getTimestamp();
+        } catch (\Exception $e) {
+            $this->logger->addError('Rejected webhook with invalid timestamp format.', [
+                'webhook_id' => $webhookId,
+                'timestamp' => $timestamp,
+            ]);
+
+            return [
+                'valid' => false,
+                'status' => 401,
+                'message' => 'Invalid webhook request.',
+            ];
+        }
+
+        $now = time();
+        if (
+            $timestampValue > $now + self::MAX_WEBHOOK_CLOCK_SKEW ||
+            $timestampValue < $now - self::MAX_WEBHOOK_AGE - self::MAX_WEBHOOK_CLOCK_SKEW
+        ) {
+            $this->logger->addError('Rejected stale or future webhook.', [
+                'webhook_id' => $webhookId,
+                'timestamp' => $timestamp,
+                'timestamp_epoch' => $timestampValue,
+                'server_time_epoch' => $now,
+                'age_seconds' => $now - $timestampValue,
+                'max_age_seconds' => self::MAX_WEBHOOK_AGE,
+                'clock_skew_seconds' => self::MAX_WEBHOOK_CLOCK_SKEW,
+            ]);
+
+            return [
+                'valid' => false,
+                'status' => 401,
+                'message' => 'Invalid webhook request.',
+            ];
+        }
+
+        $secret = $this->getWebhookSecretForPayload($data);
+        if ($secret === '') {
+            $this->logger->addError(
+                'Webhook secret is not configured.',
+                array_merge(['webhook_id' => $webhookId, 'event_type' => $eventType], $this->webhookSecretResolution)
+            );
+
+            return [
+                'valid' => false,
+                'status' => 503,
+                'message' => 'Webhook authentication is not configured.',
+            ];
+        }
+
+        $expectedSignature = hash_hmac('sha256', $timestamp . $webhookId, $secret);
+        if (!hash_equals($expectedSignature, strtolower($signature))) {
+            $this->logger->addError(
+                'Rejected webhook with invalid signature.',
+                array_merge([
+                    'webhook_id' => $webhookId,
+                    'event_type' => $eventType,
+                ], $this->webhookSecretResolution)
+            );
+
+            return [
+                'valid' => false,
+                'status' => 401,
+                'message' => 'Invalid webhook request.',
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'webhook_id' => $webhookId,
+            'event_id' => $eventId,
+            'event_type' => $eventType,
+        ];
+    }
+
+    /**
+     * Resolve the secret for the store that owns the invoice when possible.
+     *
+     * @param array $data
+     * @return string
+     */
+    private function getWebhookSecretForPayload(array $data)
+    {
+        $storeId = null;
+        $invoice = isset($data['invoice']) && is_scalar($data['invoice'])
+            ? (string)$data['invoice']
+            : '';
+        $orderFound = false;
+
+        if ($invoice !== '') {
+            $order = $this->orderInterface->loadByIncrementId($invoice);
+            if ($order->getId()) {
+                $orderFound = true;
+                $storeId = $order->getStoreId();
+            }
+        }
+
+        $apiKeyType = $this->reepayHelper->getConfig('api_key_type', $storeId);
+        $secretField = (int)$apiKeyType === 1 ? 'webhook_secret' : 'webhook_secret_test';
+        $secret = $this->reepayHelper->getWebhookSecret($storeId);
+        $this->webhookSecretResolution = [
+            'invoice' => $invoice !== '' ? $invoice : null,
+            'order_found' => $orderFound,
+            'store_id' => $storeId,
+            'scope' => $storeId === null ? 'current_store_fallback' : 'order_store',
+            'api_key_type' => (string)$apiKeyType,
+            'secret_field' => $secretField,
+            'secret_configured' => $secret !== '',
+        ];
+
+        return $secret;
+    }
+
+    /**
+     * Create a JSON response for webhook authentication and idempotency failures.
+     *
+     * @param int $status
+     * @param string $message
+     * @return \Magento\Framework\Controller\ResultInterface
+     */
+    private function createWebhookResponse($status, $message)
+    {
+        $result = $this->resultJsonFactory->create();
+        $result->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0', true);
+        $result->setHttpResponseCode((int)$status);
+        $result->setData([
+            'status' => (int)$status,
+            'message' => $message,
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * Release the processing lease without masking the original webhook error.
+     *
+     * @param string $webhookId
+     * @return void
+     */
+    private function releaseWebhook($webhookId)
+    {
+        try {
+            $this->webhookResource->release($webhookId);
+        } catch (\Exception $e) {
+            $this->logger->addError('Unable to release webhook processing state.', [
+                'webhook_id' => $webhookId,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -607,6 +880,15 @@ class Index extends \Magento\Framework\App\Action\Action
         $order_id = $data['invoice'];
         $this->logger->addDebug(__METHOD__, [$order_id]);
         $order = $this->orderInterface->loadByIncrementId($order_id);
+        if (!$order->getId()) {
+            $this->logger->addError('The order #' . $order_id . ' no longer exists.');
+
+            return [
+                'status' => 200,
+                'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
+            ];
+        }
+
         $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
         $metadata = $this->invoiceHelper->getMetadata($apiKey, $data['invoice']);
         if (isset($metadata['magento']['module']) && $metadata['magento']['module'] === 'subscription') {
@@ -617,12 +899,21 @@ class Index extends \Magento\Framework\App\Action\Action
         }
 
         try {
-            if (!$order->getId()) {
-                $this->logger->addError('The order #' . $order_id . ' no longer exists.');
+            $payment = $order->getPayment();
+            if (!$payment || !$this->reepayHelper->isReepayPaymentMethod($payment->getMethod())) {
+                return [
+                    'status' => 200,
+                    'message' => 'Order #' . $order_id . ' does not use this payment method.'
+                ];
+            }
+
+            $invoice = $this->invoiceHelper->get($apiKey, $order_id);
+            if (!is_array($invoice) || !isset($invoice['state']) || $invoice['state'] !== 'cancelled') {
+                $this->logger->addDebug('cancel webhook ignored, invoice state does not match', [$order_id]);
 
                 return [
                     'status' => 200,
-                    'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
+                    'message' => 'Order #' . $order_id . ' was not changed. Invoice state does not match.'
                 ];
             }
 
@@ -855,7 +1146,8 @@ class Index extends \Magento\Framework\App\Action\Action
 
                         if (is_array($events)) {
                             foreach ($events as $event) {
-                                if (isset($event['name'])
+                                if (
+                                    isset($event['name'])
                                     && $event['name'] === 'EXTERNAL_AGE_VERIFICATION_RESULT'
                                     && isset($event['data']['result'])
                                 ) {
@@ -880,7 +1172,6 @@ class Index extends \Magento\Framework\App\Action\Action
                         );
                     }
                 }
-
             }
         }
     }

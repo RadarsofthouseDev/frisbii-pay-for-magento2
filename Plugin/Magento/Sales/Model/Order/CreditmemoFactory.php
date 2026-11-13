@@ -61,28 +61,17 @@ class CreditmemoFactory
         }
         $isReepayPaymentMethod = $this->_helperData->isReepayPaymentMethod($paymentMethod);
         $isEnable = $this->_helperData->isSurchargeFeeEnabled($storeId);
-        $this->_helperLogger->addDebug(
-            __METHOD__,
-            [
-                'PaymentMethod' => $paymentMethod,
-                'isReepayPaymentMethod'=>$isReepayPaymentMethod,
-                'SurchargeFeeEnabled'=> ($isEnable ? 'true' : 'false')
-            ]
-        );
         if (!$isEnable || !$isReepayPaymentMethod) {
             return $result;
         }
-        $this->_helperLogger->addDebug(__METHOD__, $data);
         if (array_key_exists('reepay_surcharge_fee', $data)) {
             $surchargeFee = round((float)$result->getReepaySurchargeFee(), 2);
             $inputSurchargeFee = round((float)$data['reepay_surcharge_fee'], 2);
             $availableSurchargeFee = $this->_helperSurchargeFee->getAvailableSurchargeFeeRefundAmount($order->getId());
             if ($surchargeFee === $inputSurchargeFee) {
-                $this->_helperLogger->addDebug('surchargeFee == inputSurchargeFee');
                 return $result;
             }
             if ($inputSurchargeFee > $availableSurchargeFee) {
-                $this->_helperLogger->addDebug(' inputSurchargeFee > surchargeFee');
                 $inputSurchargeFee = $availableSurchargeFee;
             }
             $this->_helperLogger->addDebug(
@@ -134,18 +123,9 @@ class CreditmemoFactory
         }
         $isReepayPaymentMethod = $this->_helperData->isReepayPaymentMethod($paymentMethod);
         $isEnable = $this->_helperData->isSurchargeFeeEnabled($storeId);
-        $this->_helperLogger->addDebug(
-            __METHOD__,
-            [
-                'PaymentMethod' => $paymentMethod,
-                'isReepayPaymentMethod'=>$isReepayPaymentMethod,
-                'SurchargeFeeEnabled'=> ($isEnable ? 'true' : 'false')
-            ]
-        );
         if (!$isEnable || !$isReepayPaymentMethod) {
             return $result;
         }
-        $this->_helperLogger->addDebug(__METHOD__, $data);
         if (array_key_exists('reepay_surcharge_fee', $data)) {
             $surchargeFee = round((float)$result->getReepaySurchargeFee(), 2);
             $inputSurchargeFee = round((float)$data['reepay_surcharge_fee'], 2);
@@ -153,11 +133,9 @@ class CreditmemoFactory
                 $invoice->getOrder()->getId()
             );
             if ($surchargeFee === $inputSurchargeFee) {
-                $this->_helperLogger->addDebug('surchargeFee == inputSurchargeFee');
                 return $result;
             }
             if ($inputSurchargeFee > $availableSurchargeFee) {
-                $this->_helperLogger->addDebug(' inputSurchargeFee > surchargeFee');
                 $inputSurchargeFee = $availableSurchargeFee;
             }
             $this->_helperLogger->addDebug(

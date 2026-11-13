@@ -55,29 +55,22 @@ class SurchargeFee extends \Magento\Sales\Model\Order\Creditmemo\Total\AbstractT
         }
         $isReepayPaymentMethod = $this->_helperData->isReepayPaymentMethod($paymentMethod);
         $isEnable = $this->_helperData->isSurchargeFeeEnabled($storeId);
-        $this->_helperLogger->addDebug(
-            __METHOD__,
-            [
-                'PaymentMethod' => $paymentMethod,
-                'isReepayPaymentMethod' => $isReepayPaymentMethod,
-                'SurchargeFeeEnabled' => ($isEnable ? 'true' : 'false')
-            ]
-        );
         if (!$isEnable || !$isReepayPaymentMethod) {
             return $this;
         }
 
         $amount = $creditmemo->getReepaySurchargeFee();
-        $this->_helperLogger->addDebug('DefaultReepaySurchargeFee: ', [$amount]);
-
         if (empty($amount)) {
-            $this->_helperLogger->addDebug('isEmptyReepaySurchargeFee: ', [$amount]);
             $amount = $this->_helperSurchargeFee->getAvailableSurchargeFeeRefundAmount(
                 $creditmemo->getOrder()->getEntityId()
             );
             $creditmemo->setReepaySurchargeFee($amount);
         }
-        $this->_helperLogger->addDebug('ResultReepaySurchargeFee: ', [$amount]);
+        if ((float)$amount > 0) {
+            $this->_helperLogger->addDebug('Applied surcharge fee to credit memo.', [
+                'surcharge_fee' => $amount
+            ]);
+        }
         $creditmemo->setGrandTotal($creditmemo->getGrandTotal() + $amount);
         $creditmemo->setBaseGrandTotal($creditmemo->getBaseGrandTotal() + $amount);
 

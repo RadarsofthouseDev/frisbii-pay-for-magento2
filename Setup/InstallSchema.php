@@ -225,7 +225,7 @@ class InstallSchema implements InstallSchemaInterface
             'customer_id',
             \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
             null,
-            ['identity' => true,'nullable' => false,'primary' => true,'unsigned' => true,],
+            ['identity' => true, 'nullable' => false, 'primary' => true, 'unsigned' => true,],
             'Entity ID'
         );
 
@@ -261,7 +261,7 @@ class InstallSchema implements InstallSchemaInterface
             'session_id',
             \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
             null,
-            ['identity' => true,'nullable' => false,'primary' => true,'unsigned' => true,],
+            ['identity' => true, 'nullable' => false, 'primary' => true, 'unsigned' => true,],
             'Entity ID'
         );
 
@@ -306,5 +306,83 @@ class InstallSchema implements InstallSchemaInterface
         );
 
         $setup->getConnection()->createTable($table_radarsofthouse_reepay_session);
+
+        $table_radarsofthouse_reepay_webhook = $setup->getConnection()->newTable(
+            $setup->getTable('radarsofthouse_reepay_webhook')
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'webhook_id',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+            64,
+            ['nullable' => false, 'primary' => true],
+            'Frisbii webhook id'
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'event_id',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+            64,
+            ['nullable' => false],
+            'Frisbii event id'
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'event_type',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+            64,
+            ['nullable' => false],
+            'Frisbii event type'
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'status',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+            16,
+            ['nullable' => false, 'default' => 'processing'],
+            'Webhook processing status'
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'received_at',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TIMESTAMP,
+            null,
+            ['nullable' => false, 'default' => \Magento\Framework\DB\Ddl\Table::TIMESTAMP_INIT],
+            'First received timestamp'
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'last_received_at',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TIMESTAMP,
+            null,
+            ['nullable' => false],
+            'Last received timestamp'
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'processing_started_at',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TIMESTAMP,
+            null,
+            ['nullable' => false],
+            'Processing lease start timestamp'
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'processed_at',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TIMESTAMP,
+            null,
+            ['nullable' => true],
+            'Successful processing timestamp'
+        );
+
+        $table_radarsofthouse_reepay_webhook->addColumn(
+            'duplicate_count',
+            \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+            null,
+            ['unsigned' => true, 'nullable' => false, 'default' => 0],
+            'Number of duplicate deliveries'
+        );
+
+        $setup->getConnection()->createTable($table_radarsofthouse_reepay_webhook);
     }
 }

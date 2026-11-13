@@ -100,38 +100,36 @@ class Email extends AbstractHelper
             $order->getStoreId()
         );
 
-        $this->_logger->addDebug('$senderName : ' . $senderName);
-        $this->_logger->addDebug('$senderEmail : ' . $senderEmail);
 
         $transport = $this->_transportBuilder->setTemplateIdentifier($emailTemplateId)
-                ->setTemplateOptions(
-                    [
-                        'area' => \Magento\Framework\App\Area::AREA_FRONTEND,
-                        'store' => $order->getStoreId(),
-                    ]
-                )
-                ->setTemplateVars(
-                    [
-                        "increment_id" => $order->getIncrementId(),
-                        "payment_url" => 'https://checkout.reepay.com/#/' . $paymentTransactionId
-                    ]
-                )
-                ->setFrom(
-                    [
-                        'name' => $senderName,
-                        'email' => $senderEmail
-                    ]
-                )
-                ->addTo(
-                    $order->getCustomerEmail(),
-                    $order->getCustomerName()
-                )
-                ->getTransport();
+            ->setTemplateOptions(
+                [
+                    'area' => \Magento\Framework\App\Area::AREA_FRONTEND,
+                    'store' => $order->getStoreId(),
+                ]
+            )
+            ->setTemplateVars(
+                [
+                    "increment_id" => $order->getIncrementId(),
+                    "payment_url" => 'https://checkout.reepay.com/#/' . $paymentTransactionId
+                ]
+            )
+            ->setFrom(
+                [
+                    'name' => $senderName,
+                    'email' => $senderEmail
+                ]
+            )
+            ->addTo(
+                $order->getCustomerEmail(),
+                $order->getCustomerName()
+            )
+            ->getTransport();
         $transport->sendMessage();
         $this->_logger->addDebug('Payment link email sent to customer.', [
-            'to_email'=> $order->getCustomerEmail(),
-            'to_name'=> $order->getCustomerName(),
-            'payment_url'=> 'https://checkout.reepay.com/#/' . $paymentTransactionId
+            'to_email' => $order->getCustomerEmail(),
+            'to_name' => $order->getCustomerName(),
+            'payment_url' => 'https://checkout.reepay.com/#/' . $paymentTransactionId
         ]);
     }
 
@@ -146,11 +144,12 @@ class Email extends AbstractHelper
         /** @var \Magento\Sales\Model\Order $order */
         $order = $this->_orderInterface->loadByIncrementId($orderIncrementId);
         $this->_logger->addDebug('order before send email.', [
-            'sub_total'=> $order->getSubtotal(),
-            'surcharge_fee'=> $order->getReepaySurchargeFee(),
-            'grand_total'=> $order->getGrandTotal(),
+            'sub_total' => $order->getSubtotal(),
+            'surcharge_fee' => $order->getReepaySurchargeFee(),
+            'grand_total' => $order->getGrandTotal(),
         ]);
-        if ($this->_reepayHelper->getConfig('send_order_email_when_success', $order->getStoreId()) &&
+        if (
+            $this->_reepayHelper->getConfig('send_order_email_when_success', $order->getStoreId()) &&
             !$order->getEmailSent()
         ) {
             try {

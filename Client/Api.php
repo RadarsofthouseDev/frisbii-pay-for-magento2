@@ -64,7 +64,7 @@ class Api
         $this->client = new Client([
             'base_uri' => static::BASE_URI,
             RequestOptions::TIMEOUT => self::TIMEOUT,
-            RequestOptions::VERIFY => false,
+            RequestOptions::VERIFY => true,
         ]);
         $this->lastResponse = [
             'headers' => null,
@@ -321,13 +321,26 @@ class Api
             );
             if (!empty($this->lastResponse['body'])) {
                 $formattedBody = json_decode($this->lastResponse['body'], true);
-                if (array_key_exists('error', $formattedBody)) {
-                    $this->httpError = sprintf('%d: %s', $formattedBody['http_status'], $formattedBody['http_reason']);
+                if (is_array($formattedBody) && array_key_exists('error', $formattedBody)) {
+                    $httpStatus = isset($formattedBody['http_status']) && is_numeric($formattedBody['http_status'])
+                        ? (int)$formattedBody['http_status']
+                        : $e->getResponse()->getStatusCode();
+                    $httpReason = isset($formattedBody['http_reason']) && is_scalar($formattedBody['http_reason'])
+                        ? (string)$formattedBody['http_reason']
+                        : $e->getResponse()->getReasonPhrase();
+
+                    $this->httpError = sprintf('%d: %s', $httpStatus, $httpReason);
                     $this->errors = [
-                        'request_id' => $formattedBody['request_id'],
-                        'code' => array_key_exists('code', $formattedBody) ? $formattedBody['code'] : '',
-                        'error' => array_key_exists('error', $formattedBody) ? $formattedBody['error'] : '',
-                        'message' => array_key_exists('message', $formattedBody) ? $formattedBody['message'] : '',
+                        'request_id' => isset($formattedBody['request_id']) && is_scalar($formattedBody['request_id'])
+                            ? (string)$formattedBody['request_id']
+                            : '',
+                        'code' => isset($formattedBody['code']) && is_scalar($formattedBody['code'])
+                            ? (string)$formattedBody['code']
+                            : '',
+                        'error' => is_scalar($formattedBody['error']) ? (string)$formattedBody['error'] : '',
+                        'message' => isset($formattedBody['message']) && is_scalar($formattedBody['message'])
+                            ? (string)$formattedBody['message']
+                            : '',
                     ];
                 }
             }

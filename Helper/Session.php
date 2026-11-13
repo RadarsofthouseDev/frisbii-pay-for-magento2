@@ -52,9 +52,26 @@ class Session extends AbstractHelper
 
             return $response;
         } else {
-            $log['http_errors'] = $this->client->getHttpError();
-            $log['response_errors'] = $this->client->getErrors();
-            $this->logger->addError(__METHOD__, $log, true);
+            $httpError = $this->client->getHttpError();
+            $responseErrors = $this->client->getErrors();
+            $errorMessage = '';
+            if (is_array($responseErrors) && !empty($responseErrors['message'])) {
+                $errorMessage = $responseErrors['message'];
+            } elseif (is_array($responseErrors) && !empty($responseErrors['error'])) {
+                $errorMessage = $responseErrors['error'];
+            } elseif ($httpError) {
+                $errorMessage = $httpError;
+            } else {
+                $errorMessage = 'Frisbii checkout session creation failed.';
+            }
+
+            $log['http_errors'] = $httpError;
+            $log['response_errors'] = $responseErrors;
+            $log['error_code'] = is_array($responseErrors) && isset($responseErrors['code'])
+                ? $responseErrors['code']
+                : null;
+            $log['error_message'] = $errorMessage;
+            $this->logger->addError(__METHOD__ . ' Failed to create Frisbii checkout session.', $log, true);
 
             return false;
         }

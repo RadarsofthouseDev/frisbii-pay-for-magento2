@@ -78,19 +78,31 @@ class RemoveCard extends \Magento\Framework\App\Action\Action
      */
     public function execute()
     {
+        if (!$this->_request->isPost()) {
+            return $this->_resultJsonFactory->create()
+                ->setHttpResponseCode(405)
+                ->setHeader('Allow', 'POST')
+                ->setData([
+                    'status' => 'failure',
+                    'message' => __('Only POST requests are allowed.')
+                ]);
+        }
+
         $params = $this->_request->getParams();
-        $this->_logger->addDebug(__METHOD__, $params);
+        $this->_logger->addDebug(__METHOD__);
 
         $result = [];
 
         if (empty($params['cid'])) {
             $result['status'] = 'failure';
             $result['message'] = __('Empty credit card ID.');
-            return $this->_resultJsonFactory->create()->setHeader(
-                'Cache-Control',
-                'no-store, no-cache, must-revalidate, max-age=0',
-                true
-            )->setData($result);
+            return $this->_resultJsonFactory->create()
+                ->setHttpResponseCode(400)
+                ->setHeader(
+                    'Cache-Control',
+                    'no-store, no-cache, must-revalidate, max-age=0',
+                    true
+                )->setData($result);
         }
 
         if ($this->_customerSession->isLoggedIn()) {
@@ -104,7 +116,9 @@ class RemoveCard extends \Magento\Framework\App\Action\Action
             );
 
             if ($deleteResult) {
-                $this->_logger->addDebug('delete cid : '.$params['cid'].' from costomer_id : '.$costomer_id);
+                $this->_logger->addDebug('Deleted saved payment card.', [
+                    'card_id' => $params['cid']
+                ]);
                 $result['status'] = 'success';
                 return $this->_resultJsonFactory->create()->setHeader(
                     'Cache-Control',
@@ -121,15 +135,15 @@ class RemoveCard extends \Magento\Framework\App\Action\Action
                 )->setData($result);
             }
         } else {
-            if (empty($params['cid'])) {
-                $result['status'] = 'failure';
-                $result['message'] = __('Please logged in as a customer.');
-                return $this->_resultJsonFactory->create()->setHeader(
+            $result['status'] = 'failure';
+            $result['message'] = __('Please log in as a customer.');
+            return $this->_resultJsonFactory->create()
+                ->setHttpResponseCode(401)
+                ->setHeader(
                     'Cache-Control',
                     'no-store, no-cache, must-revalidate, max-age=0',
                     true
                 )->setData($result);
-            }
         }
     }
 }

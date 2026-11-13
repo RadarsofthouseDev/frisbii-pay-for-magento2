@@ -1,4 +1,7 @@
 # Changelog
+## Version 1.2.72 on 13 November 2026
+- Payment improvements
+
 ## Version 1.2.71 on 22 October 2026
 - Added 'click_to_pay' to the payment methods payload when it includes visa, mc, or card.
 

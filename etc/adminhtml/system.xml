@@ -21,25 +21,49 @@
 					<label>Instructions</label>
 					<comment/>
 				</field>
-				<field id="private_key_test" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="21" translate="label" type="text">
+				<field id="private_key_test" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="21" translate="label" type="obscure">
 					<label>Private API Key For Test</label>
+					<backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
 					<comment>
-						you can find at https://app.frisbii.com under "Configurations" >> "Integration and tools" >> "API Credentials".</comment>
+						You can find at https://app.frisbii.com under "Configurations" >> "Integration and tools" >> "API Credentials".</comment>
 				</field>
-				<field id="private_key" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="23" translate="label" type="text">
+				<field id="api_key_account_test" translate="label comment" type="label" sortOrder="22" showInDefault="1" showInWebsite="0" showInStore="0">
+					<frontend_model>Radarsofthouse\Reepay\Block\System\Config\ApiKeyAccount</frontend_model>
+					<label>API Key Account For Test</label>
+				</field>
+				<field id="private_key" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="23" translate="label" type="obscure">
 					<label>Private API Key</label>
+					<backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
 					<comment>
-						you can find at https://app.frisbii.com under "Configurations" >> "Integration and tools" >> "API Credentials".</comment>
+						You can find at https://app.frisbii.com under "Configurations" >> "Integration and tools" >> "API Credentials".</comment>
 				</field>
-				<field id="api_key_type" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="24" translate="label" type="select">
+				<field id="api_key_account" translate="label comment" type="label" sortOrder="24" showInDefault="1" showInWebsite="0" showInStore="0">
+					<frontend_model>Radarsofthouse\Reepay\Block\System\Config\ApiKeyAccount</frontend_model>
+					<label>API Key Account</label>
+				</field>
+				<field id="api_key_type" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="25" translate="label" type="select">
 					<label>API Key Type</label>
 					<comment/>
 					<source_model>Radarsofthouse\Reepay\Model\Config\Source\Keytype</source_model>
 				</field>
-                <field id="webhook" translate="label comment" type="button" sortOrder="25" showInDefault="1" showInWebsite="0" showInStore="0">
+				<field id="webhook" translate="label comment" type="button" sortOrder="26" showInDefault="1" showInWebsite="0" showInStore="0">
                     <frontend_model>Radarsofthouse\Reepay\Block\System\Config\Webhook</frontend_model>
-                    <label>Update webhook URL in Frisbii</label>
+				<label>Update Webhook URLs</label>
                 </field>
+				<field id="webhook_secret_sync" translate="label comment" type="button" sortOrder="27" showInDefault="1" showInWebsite="0" showInStore="0">
+					<frontend_model>Radarsofthouse\Reepay\Block\System\Config\WebhookSecret</frontend_model>
+					<label>Sync Webhook Secrets</label>
+				</field>
+				<field id="webhook_secret_test" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="28" translate="label" type="obscure">
+					<label>Webhook Secret For Test</label>
+					<backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+					<comment><![CDATA[Required for test webhooks. Click "Sync Webhook Secrets" or enter the current secret manually.<br />You can find at https://app.frisbii.com under "Configurations" >> "Integration and tools" >> "Webhooks" >> "Configuration" >> "Secret".]]></comment>
+				</field>
+				<field id="webhook_secret" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="29" translate="label" type="obscure">
+					<label>Webhook Secret</label>
+					<backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+					<comment><![CDATA[Required for live webhooks. Click "Sync Webhook Secrets" or enter the current secret manually.<br />You can find at https://app.frisbii.com under "Configurations" >> "Integration and tools" >> "Webhooks" >> "Configuration" >> "Secret".]]></comment>
+				</field>
 				<field id="display_type" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="30" translate="label" type="select">
 					<label>Display type</label>
 					<source_model>Radarsofthouse\Reepay\Model\Config\Source\Displaytype</source_model>

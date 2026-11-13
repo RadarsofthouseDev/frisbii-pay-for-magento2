@@ -9,6 +9,8 @@
 				<private_key_test/>
 				<private_key/>
 				<api_key_type>0</api_key_type>
+				<webhook_secret_test/>
+				<webhook_secret/>
 				<display_type>3</display_type>
 				<auto_capture>0</auto_capture>
                 <send_order_line>1</send_order_line>

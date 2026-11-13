@@ -100,14 +100,17 @@ class Cancelorder implements \Magento\Framework\Event\ObserverInterface
             $reepayMethod = isset($charge['source']['type']) ? $charge['source']['type'] : '';
 
             $isAutoCapture = false;
-            if ($this->reepayHelper->getConfig('auto_capture', $order->getStoreId()) ||
+            if (
+                $this->reepayHelper->getConfig('auto_capture', $order->getStoreId()) ||
                 $this->reepayHelper->isReepayMethodAutoCapture($paymentMethod, $reepayMethod) ||
                 $order->getPayment()->getMethodInstance()->isAutoCapture()
             ) {
                 $isAutoCapture = true;
             }
 
-            if ($charge !== false && ($charge['state'] == 'created' || $charge['state'] == 'failed')) {
+            $chargeState = is_array($charge) && isset($charge['state']) ? $charge['state'] : '';
+
+            if (in_array($chargeState, ['created', 'failed', 'pending'], true)) {
                 $cancelRes = $this->reepayInvoice->cancel(
                     $apiKey,
                     $order->getIncrementId()
@@ -121,7 +124,7 @@ class Cancelorder implements \Magento\Framework\Event\ObserverInterface
                         $this->reepayHelper->setReepayPaymentState($_payment, 'cancelled');
                     }
                 }
-            } elseif ($charge !== false && $charge['state'] == 'settled' && $isAutoCapture) {
+            } elseif ($chargeState == 'settled' && $isAutoCapture) {
                 try {
                     $settledAmount = $charge['amount'];
 
@@ -149,7 +152,10 @@ class Cancelorder implements \Magento\Framework\Event\ObserverInterface
                 } catch (\Magento\Framework\Exception\LocalizedException | \Exception $e) {
                     $this->logger->addError("Order cancelation: Refund error for order #" . $order->getIncrementId() . ' : ' . $e->getMessage());
                 }
-            } else {
+            } elseif ($chargeState == 'cancelled') {
+                $_payment = $order->getPayment();
+                $this->reepayHelper->setReepayPaymentState($_payment, 'cancelled');
+            } elseif ($chargeState == 'authorized') {
                 $cancelRes = $this->reepayCharge->cancel(
                     $apiKey,
                     $order->getIncrementId()

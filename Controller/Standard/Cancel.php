@@ -15,9 +15,19 @@ class Cancel extends \Magento\Framework\App\Action\Action
     private $resultPageFactory;
 
     /**
+     * @var \Magento\Framework\Controller\Result\RedirectFactory
+     */
+    protected $resultRedirectFactory;
+
+    /**
      * @var \Radarsofthouse\Reepay\Helper\Session
      */
     private $reepaySession;
+
+    /**
+     * @var \Radarsofthouse\Reepay\Helper\PaymentSessionValidator
+     */
+    private $paymentSessionValidator;
 
     /**
      * @var \Radarsofthouse\Reepay\Helper\Logger
@@ -68,11 +78,13 @@ class Cancel extends \Magento\Framework\App\Action\Action
      * @param \Magento\Sales\Api\Data\OrderInterface $orderInterface
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Radarsofthouse\Reepay\Helper\Session $reepaySession
+     * @param \Radarsofthouse\Reepay\Helper\PaymentSessionValidator $paymentSessionValidator
      * @param \Radarsofthouse\Reepay\Helper\Data $reepayHelper
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
      * @param \Radarsofthouse\Reepay\Helper\Logger $logger
      * @param \Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory $transactionSearchResultInterfaceFactory
+     * @param \Magento\Framework\Controller\Result\RedirectFactory $resultRedirectFactory
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -81,18 +93,22 @@ class Cancel extends \Magento\Framework\App\Action\Action
         \Magento\Sales\Api\Data\OrderInterface $orderInterface,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Radarsofthouse\Reepay\Helper\Session $reepaySession,
+        \Radarsofthouse\Reepay\Helper\PaymentSessionValidator $paymentSessionValidator,
         \Radarsofthouse\Reepay\Helper\Data $reepayHelper,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
         \Radarsofthouse\Reepay\Helper\Logger $logger,
-        \Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory $transactionSearchResultInterfaceFactory
+        \Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory $transactionSearchResultInterfaceFactory,
+        \Magento\Framework\Controller\Result\RedirectFactory $resultRedirectFactory
     ) {
         $this->resultPageFactory = $resultPageFactory;
+        $this->resultRedirectFactory = $resultRedirectFactory;
         $this->request = $request;
         $this->orderInterface = $orderInterface;
         $this->checkoutSession = $checkoutSession;
         $this->url = $context->getUrl();
         $this->reepaySession = $reepaySession;
+        $this->paymentSessionValidator = $paymentSessionValidator;
         $this->reepayHelper = $reepayHelper;
         $this->scopeConfig = $scopeConfig;
         $this->resultJsonFactory = $resultJsonFactory;
@@ -110,23 +126,32 @@ class Cancel extends \Magento\Framework\App\Action\Action
     public function execute()
     {
         $params = $this->request->getParams();
-        $this->logger->addDebug(__METHOD__, $params);
-        if (!empty($params['error'])) {
-            if ($params['error'] === "error.session.SESSION_DELETED") {
-                return $this->redirect('checkout/cart');
-            }
-        }
-        if (empty($params['invoice']) || empty($params['id'])) {
-            return $this->redirect('checkout/cart');
+        $orderId = isset($params['invoice']) && is_scalar($params['invoice'])
+            ? trim((string)$params['invoice'])
+            : '';
+        $id = isset($params['id']) && is_scalar($params['id'])
+            ? trim((string)$params['id'])
+            : '';
+        $isAjax = isset($params['_isAjax']) ? 1 : 0;
+
+        $this->logger->addDebug(__METHOD__, [
+            'invoice' => $orderId,
+            'is_ajax' => (bool)$isAjax,
+        ]);
+
+        if (!$this->paymentSessionValidator->isValid($orderId, $id)) {
+            $this->logger->addError('Rejected unbound payment cancel callback.', [
+                'invoice' => $orderId,
+            ]);
+
+            return $this->rejectCallback($isAjax);
         }
 
-        $orderId = $params['invoice'];
-        $id = $params['id'];
-        $isAjax = 0;
-        if (isset($params['_isAjax'])) {
-            $isAjax = 1;
-        }
         $order = $this->orderInterface->loadByIncrementId($orderId);
+        if (!$order->getId()) {
+            return $this->rejectCallback($isAjax);
+        }
+
         $cancelConfig = $this->reepayHelper->getConfig('cancel_order_after_payment_cancel', $order->getStoreId());
 
         if ($cancelConfig && $order->canCancel()) {
@@ -135,11 +160,11 @@ class Cancel extends \Magento\Framework\App\Action\Action
 
             // don't allowed the cancelation if already have transactions (payment is paid)
             if (count($transactions->getItems()) == 0) {
+                $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
                 $order->cancel();
                 $order->addStatusHistoryComment('Frisbii : order have been cancelled by payment page');
                 $order->save();
                 $this->logger->addDebug('Cancelled order : ' . $orderId);
-                $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
                 $payment = $order->getPayment();
                 $this->reepayHelper->setReepayPaymentState($payment, 'cancelled');
                 // delete reepay session
@@ -178,6 +203,27 @@ class Cancel extends \Magento\Framework\App\Action\Action
             return $this->redirect('/');
         }
         return $this->redirect('checkout/cart');
+    }
+
+    /**
+     * Reject a callback without revealing whether the order exists.
+     *
+     * @param bool $isAjax
+     * @return \Magento\Framework\Controller\ResultInterface
+     */
+    private function rejectCallback($isAjax)
+    {
+        if (!$isAjax) {
+            return $this->redirect('checkout/cart');
+        }
+
+        return $this->resultJsonFactory->create()
+            ->setHttpResponseCode(400)
+            ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0', true)
+            ->setData([
+                'status' => 'error',
+                'message' => 'Invalid payment session.',
+            ]);
     }
 
     /**

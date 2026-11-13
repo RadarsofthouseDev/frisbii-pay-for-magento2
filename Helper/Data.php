@@ -142,6 +142,11 @@ class Data extends AbstractHelper
     protected $_scopeConfig;
 
     /**
+     * @var \Magento\Framework\Encryption\EncryptorInterface
+     */
+    protected $_encryptor;
+
+    /**
      * @var \Radarsofthouse\Reepay\Model\Status
      */
     protected $_reepayStatus;
@@ -178,6 +183,7 @@ class Data extends AbstractHelper
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\Locale\Resolver $resolver,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Encryption\EncryptorInterface $encryptor,
         \Radarsofthouse\Reepay\Model\Status $reepayStatus,
         \Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface $transactionBuilder,
         \Magento\Framework\Pricing\Helper\Data $priceHelper,
@@ -187,6 +193,7 @@ class Data extends AbstractHelper
         $this->_storeManager = $storeManager;
         $this->_resolver = $resolver;
         $this->_scopeConfig = $scopeConfig;
+        $this->_encryptor = $encryptor;
         $this->_reepayStatus = $reepayStatus;
         $this->_transactionBuilder = $transactionBuilder;
         $this->_priceHelper = $priceHelper;
@@ -231,13 +238,57 @@ class Data extends AbstractHelper
 
         $apiKey = null;
         $testModeConfig = $this->getConfig('api_key_type', $storeId);
-        if ($testModeConfig == 1) {
-            $apiKey = $this->getConfig('private_key', $storeId);
-        } else {
-            $apiKey = $this->getConfig('private_key_test', $storeId);
+        $keyType = $testModeConfig == 1 ? 'private_key' : 'private_key_test';
+
+        return $this->getConfiguredApiKey($keyType, $storeId);
+    }
+
+    /**
+     * Get a configured API key by environment without exposing its encrypted storage value.
+     *
+     * @param string $keyType
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getConfiguredApiKey($keyType, $storeId = null)
+    {
+        if (!in_array($keyType, ['private_key', 'private_key_test'], true)) {
+            return '';
         }
 
-        return $apiKey;
+        return $this->decryptConfigValue($this->getConfig($keyType, $storeId));
+    }
+
+    /**
+     * Decrypt a Magento encrypted configuration value while retaining support for plaintext legacy values.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private function decryptConfigValue($value)
+    {
+        $value = trim((string)$value);
+        if ($value !== '' && preg_match('/^\d+:\d+:/', $value)) {
+            $decryptedValue = $this->_encryptor->decrypt($value);
+            if ($decryptedValue !== '') {
+                return trim($decryptedValue);
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Get the webhook secret for the configured API key environment.
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getWebhookSecret($storeId = null)
+    {
+        $testModeConfig = $this->getConfig('api_key_type', $storeId);
+        $secretConfig = $testModeConfig == 1 ? 'webhook_secret' : 'webhook_secret_test';
+        return $this->decryptConfigValue($this->getConfig($secretConfig, $storeId));
     }
 
     /**
@@ -1168,7 +1219,9 @@ class Data extends AbstractHelper
             $payment->setAdditionalInformation('age_verification_required', $ageVerificationRequired);
             $payment->save();
         } catch (\Exception $e) {
-            $this->_logger->error('updateAgeVerificationRequiredToOrderPayment() Exception : ' . $e->getMessage());
+            $this->_logger->error('Unable to save age verification required state.', [
+                'exception_message' => $e->getMessage()
+            ]);
         }
     }
 
@@ -1187,12 +1240,14 @@ class Data extends AbstractHelper
             } elseif ($ageVerificationResult === 'MINIMUM_AGE_VERIFIED') {
                 $payment->setAdditionalInformation('age_verification_result', 'Minimum age verified');
             } else {
-                $this->_logger->error('updateAgeVerificationResultToOrderPayment() Invalid age verification result type: ' . gettype($ageVerificationResult) . ' with value: ' . $ageVerificationResult);
+                $this->_logger->error('Invalid age verification result.');
                 return;
             }
             $payment->save();
         } catch (\Exception $e) {
-            $this->_logger->error('updateAgeVerificationResultToOrderPayment() Exception : ' . $e->getMessage());
+            $this->_logger->error('Unable to save age verification result.', [
+                'exception_message' => $e->getMessage()
+            ]);
         }
     }
 }

@@ -4,7 +4,12 @@
     <policies>
         <policy id="script-src">
             <values>
-                <value id="data" type="host">*.reepay.com</value>
+                <value id="checkout_reepay_com" type="host">checkout.reepay.com</value>
+            </values>
+        </policy>
+        <policy id="frame-src">
+            <values>
+                <value id="checkout_reepay_com_frame" type="host">checkout.reepay.com</value>
             </values>
         </policy>
     </policies>

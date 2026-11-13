@@ -58,7 +58,7 @@ class Webhook extends Field
         )->setData(
             [
                 'id' => 'webhook_button',
-                'label' => __('Update Webhook'),
+                'label' => __('Update Webhook URLs'),
             ]
         );
 

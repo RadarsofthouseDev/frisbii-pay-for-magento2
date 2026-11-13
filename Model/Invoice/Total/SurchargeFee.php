@@ -57,14 +57,6 @@ class SurchargeFee extends \Magento\Sales\Model\Order\Invoice\Total\AbstractTota
 
         $isReepayPaymentMethod = $this->_helperData->isReepayPaymentMethod($paymentMethod);
         $isEnable = $this->_helperData->isSurchargeFeeEnabled($storeId);
-        $this->_helperLogger->addDebug(
-            __METHOD__,
-            [
-                'PaymentMethod' => $paymentMethod,
-                'isReepayPaymentMethod' => $isReepayPaymentMethod,
-                'SurchargeFeeEnabled' => ($isEnable ? 'true' : 'false')
-            ]
-        );
         if (!$isEnable || !$isReepayPaymentMethod) {
             return $this;
         }
@@ -78,6 +70,11 @@ class SurchargeFee extends \Magento\Sales\Model\Order\Invoice\Total\AbstractTota
         $invoice->setReepaySurchargeFee($surchargeFee);
         $invoice->setGrandTotal($invoice->getGrandTotal() + $surchargeFee);
         $invoice->setBaseGrandTotal($invoice->getBaseGrandTotal() + $surchargeFee);
+        if ((float)$surchargeFee > 0) {
+            $this->_helperLogger->addDebug('Applied surcharge fee to invoice.', [
+                'surcharge_fee' => $surchargeFee
+            ]);
+        }
 
         return $this;
     }

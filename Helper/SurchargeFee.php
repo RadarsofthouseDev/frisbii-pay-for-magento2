@@ -119,7 +119,6 @@ class SurchargeFee extends AbstractHelper
     public function updateFeeToOrder($orderIncrementId, $charge)
     {
         try {
-            $this->logger->addDebug(__METHOD__);
             $order = $this->getOrder($orderIncrementId);
             // setting store to get correct prices and totals
             $this->storeManager->setCurrentStore($order->getStoreId());
@@ -138,7 +137,10 @@ class SurchargeFee extends AbstractHelper
                     ->setGrandTotal($quote->getGrandTotal())
                     ->setBaseGrandTotal($quote->getBaseGrandTotal());
                 $order->save();
-                $this->logger->addDebug('updateFeeToOrder already.');
+                $this->logger->addDebug('Applied surcharge fee to order.', [
+                    'order_increment_id' => $orderIncrementId,
+                    'surcharge_fee' => $surchargeFee
+                ]);
             }
         } catch (\Exception $exception) {
             $this->logger->addError($exception->getMessage());
