@@ -123,7 +123,64 @@ class Customer extends AbstractHelper
     }
 
     /**
+     * Get the Frisbii customer handle linked to a Magento customer.
+     *
+     * The link is created only by linkMagentoCustomer().
+     *
+     * @param int|string $magentoCustomerId
+     * @return string|null
+     */
+    public function getLinkedHandle($magentoCustomerId)
+    {
+        if (empty($magentoCustomerId)) {
+            return null;
+        }
+        try {
+            $handle = $this->customerRepository->getByMagentoCustomerId($magentoCustomerId)->getHandle();
+            return !empty($handle) ? (string)$handle : null;
+        } catch (NoSuchEntityException | LocalizedException $e) {
+            return null;
+        } catch (\Exception $e) {
+            $this->logger->addError("Error : getLinkedHandle : " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Link a Magento customer to a Frisbii customer handle, only if no link exists yet.
+     *
+     * Call this only with a handle that Frisbii returned for a payment made by this
+     * logged-in customer.
+     *
+     * @param int|string $magentoCustomerId
+     * @param string $email
+     * @param string $handle
+     * @return bool
+     */
+    public function linkMagentoCustomer($magentoCustomerId, $email, $handle)
+    {
+        if (empty($magentoCustomerId) || empty($handle) || $this->getLinkedHandle($magentoCustomerId) !== null) {
+            return false;
+        }
+        try {
+            /** @var \Radarsofthouse\Reepay\Api\Data\CustomerInterface $reepayCustomer */
+            $reepayCustomer = $this->customerFactory->create();
+            $reepayCustomer->setMagentoCustomerId($magentoCustomerId);
+            $reepayCustomer->setMagentoEmail($email);
+            $reepayCustomer->setHandle($handle);
+            $this->customerRepository->save($reepayCustomer);
+            return true;
+        } catch (\Exception $e) {
+            $this->logger->addError("Error : linkMagentoCustomer : " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Get Payment Cards By Customer
+     *
+     * Uses only the stored link between the Magento customer and the Frisbii customer.
+     * It does not look up or link a Frisbii customer by email.
      *
      * @param string $apiKey
      * @param \Magento\Customer\Api\Data\CustomerInterface $customer
@@ -131,36 +188,8 @@ class Customer extends AbstractHelper
      */
     public function getPaymentCardsByCustomer($apiKey, $customer)
     {
-        $handle = null;
-        $notFound = false;
-        try {
-            $customerId = $customer->getId();
-            if ($customerId) {
-                $reepayCustomer = $this->customerRepository->getByMagentoCustomerId($customerId);
-                $handle = $reepayCustomer->getHandle();
-            }
-        } catch (NoSuchEntityException | LocalizedException $exception) {
-            $notFound = true;
-            $customerEmail = $customer->getEmail();
-            if ($customerEmail) {
-                $handle = $this->search($apiKey, $customer->getEmail());
-            }
-        } catch (\Exception $e) {
-            $this->logger->addError("Error : getPaymentCardsByCustomer : " . $e->getMessage());
-        }
+        $handle = $this->getLinkedHandle($customer->getId());
         if ($handle) {
-            try {
-                if ($notFound) {
-                    /** @var \Radarsofthouse\Reepay\Api\Data\CustomerInterface $reepayCustomer */
-                    $reepayCustomer = $this->customerFactory->create();
-                    $reepayCustomer->setMagentoCustomerId($customer->getId());
-                    $reepayCustomer->setMagentoEmail($customer->getEmail());
-                    $reepayCustomer->setHandle($handle);
-                    $this->customerRepository->save($reepayCustomer);
-                }
-            } catch (LocalizedException $exception) {
-                $this->logger->addError("Error : getPaymentCardsByCustomer : " . $exception->getMessage());
-            }
             try {
                 return $this->getPaymentCards($apiKey, $handle);
             } catch (\Exception $e) {
@@ -168,6 +197,38 @@ class Customer extends AbstractHelper
             }
         }
         return [];
+    }
+
+    /**
+     * Check whether a saved payment card belongs to the Frisbii customer handle.
+     *
+     * @param string $apiKey
+     * @param string $handle
+     * @param string $cardId
+     * @return bool
+     */
+    public function isPaymentCardOwnedByHandle($apiKey, $handle, $cardId)
+    {
+        if (empty($handle)) {
+            return false;
+        }
+        try {
+            $cards = $this->getPaymentCards($apiKey, $handle);
+        } catch (\Exception $e) {
+            $this->logger->addError("Error : isPaymentCardOwnedByHandle : " . $e->getMessage());
+            return false;
+        }
+        foreach ($cards as $card) {
+            if (
+                is_array($card)
+                && isset($card['id'])
+                && is_scalar($card['id'])
+                && hash_equals((string)$card['id'], (string)$cardId)
+            ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -180,23 +241,7 @@ class Customer extends AbstractHelper
      */
     public function isPaymentCardOwnedByCustomer($apiKey, $customer, $cardId)
     {
-        $cards = $this->getPaymentCardsByCustomer($apiKey, $customer);
-        if (!is_array($cards)) {
-            return false;
-        }
-
-        foreach ($cards as $card) {
-            if (
-                is_array($card)
-                && isset($card['id'])
-                && is_scalar($card['id'])
-                && hash_equals((string)$card['id'], (string)$cardId)
-            ) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->isPaymentCardOwnedByHandle($apiKey, $this->getLinkedHandle($customer->getId()), $cardId);
     }
 
     /**

@@ -115,7 +115,25 @@ class Payment extends AbstractHelper
     {
         $apiKey = $this->_reepayHelper->getApiKey($order->getStoreId());
         $customerEmail = $order->getCustomerEmail();
-        $customerHandle = $this->_reepayCustomerHelper->search($apiKey, $customerEmail);
+        if ($order->getCustomerId()) {
+            // Logged-in customer: use only the stored link to the Frisbii customer.
+            // The customer is not matched by email address.
+            $linkedHandle = $this->_reepayCustomerHelper->getLinkedHandle($order->getCustomerId());
+            $customerHandle = $linkedHandle !== null ? $linkedHandle : false;
+        } else {
+            $customerHandle = $this->_reepayCustomerHelper->search($apiKey, $customerEmail);
+        }
+        if ($reepayCreditCard !== null) {
+            // Saved card: use a card of the Frisbii customer linked to this logged-in customer
+            if (
+                $customerHandle === false ||
+                !$this->_reepayCustomerHelper->isPaymentCardOwnedByHandle($apiKey, $customerHandle, $reepayCreditCard)
+            ) {
+                throw new \Magento\Framework\Exception\LocalizedException(
+                    __('The selected saved card is not available.')
+                );
+            }
+        }
         $customer = $this->_reepayHelper->getCustomerData($order);
         $billingAddress = $this->_reepayHelper->getOrderBillingAddress($order);
         $shippingAddress = $this->_reepayHelper->getOrderShippingAddress($order);
@@ -271,9 +289,15 @@ class Payment extends AbstractHelper
         $apiKey = $this->_reepayHelper->getApiKey($order->getStoreId());
         $handle = $order->getIncrementId();
         $source = $reepayCreditCard;
-        $customerEmail = $order->getCustomerEmail();
-        $reepayCustomer = $this->_customerRepository->getByMagentoCustomerEmail($customerEmail);
-        $customerHandle = $reepayCustomer->getHandle();
+        // Use the stored link of the logged-in customer
+        // and a card of that Frisbii customer.
+        $customerHandle = $this->_reepayCustomerHelper->getLinkedHandle($order->getCustomerId());
+        if (
+            $customerHandle === null ||
+            !$this->_reepayCustomerHelper->isPaymentCardOwnedByHandle($apiKey, $customerHandle, $source)
+        ) {
+            return false;
+        }
         $options = [];
 
         if ($this->_reepayHelper->getConfig('send_order_line') == '1') {

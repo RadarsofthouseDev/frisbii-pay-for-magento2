@@ -34,7 +34,7 @@ class FrisbiiSettings extends \Magento\Backend\Block\Widget implements \Magento\
      *
      * @return \Magento\Framework\Phrase|string
      */
-    public function getTabLabel(): \Magento\Framework\Phrase|string
+    public function getTabLabel()
     {
         return __('Frisbii Settings');
     }
@@ -44,7 +44,7 @@ class FrisbiiSettings extends \Magento\Backend\Block\Widget implements \Magento\
      *
      * @return \Magento\Framework\Phrase|string
      */
-    public function getTabTitle(): \Magento\Framework\Phrase|string
+    public function getTabTitle()
     {
         return __('Frisbii Settings');
     }

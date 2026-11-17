@@ -15,15 +15,28 @@ class AddAgeVerificationProductAttribute implements DataPatchInterface, PatchRev
 {
 
     /**
+     * @var ModuleDataSetupInterface
+     */
+    private $moduleDataSetup;
+
+    /**
+     * @var EavSetupFactory
+     */
+    private $eavSetupFactory;
+
+    /**
      * Constructor
      *
      * @param ModuleDataSetupInterface $moduleDataSetup
      * @param EavSetupFactory $eavSetupFactory
      */
     public function __construct(
-        private ModuleDataSetupInterface $moduleDataSetup,
-        private EavSetupFactory $eavSetupFactory
-    ) {}
+        ModuleDataSetupInterface $moduleDataSetup,
+        EavSetupFactory $eavSetupFactory
+    ) {
+        $this->moduleDataSetup = $moduleDataSetup;
+        $this->eavSetupFactory = $eavSetupFactory;
+    }
 
     /**
      * {@inheritdoc}

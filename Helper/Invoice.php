@@ -129,6 +129,17 @@ class Invoice extends AbstractHelper
     }
 
     /**
+     * Check that a value contains only allowed characters for a single URL path segment.
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public static function isValidIdentifier($value)
+    {
+        return is_string($value) && preg_match('/^[A-Za-z0-9_-]+$/', $value) === 1;
+    }
+
+    /**
      *  Get transaction by ID
      *
      * @param string $apiKey
@@ -140,6 +151,11 @@ class Invoice extends AbstractHelper
     public function getTransaction($apiKey, $handle, $transaction)
     {
         $log = ['param' => ['handle' => $handle, 'transaction' => $transaction]];
+        if (!self::isValidIdentifier($handle) || !self::isValidIdentifier($transaction)) {
+            $this->logger->addError(__METHOD__ . ' : invalid handle or transaction ID', $log, true);
+
+            return false;
+        }
         $response = $this->client->get($apiKey, self::ENDPOINT . "/{$handle}/transaction/{$transaction}");
         if ($this->client->success()) {
             $log['response'] = $response;
@@ -167,6 +183,11 @@ class Invoice extends AbstractHelper
     public function getTransactionDetails($apiKey, $handle, $transaction)
     {
         $log = ['param' => ['handle' => $handle, 'transaction' => $transaction]];
+        if (!self::isValidIdentifier($handle) || !self::isValidIdentifier($transaction)) {
+            $this->logger->addError(__METHOD__ . ' : invalid handle or transaction ID', $log, true);
+
+            return false;
+        }
         $response = $this->client->get($apiKey, self::ENDPOINT . "/{$handle}/transaction/{$transaction}/details");
         if ($this->client->success()) {
             $log['response'] = $response;
@@ -321,6 +342,11 @@ class Invoice extends AbstractHelper
     public function getMetadata($apiKey, $handle)
     {
         $log = ['param' => ['handle' => $handle]];
+        if (!self::isValidIdentifier($handle)) {
+            $this->logger->addError(__METHOD__ . ' : invalid handle', $log, true);
+
+            return false;
+        }
         $response = $this->client->get($apiKey, self::ENDPOINT . "/$handle/metadata");
         if ($this->client->success()) {
             $log['response'] = $response;

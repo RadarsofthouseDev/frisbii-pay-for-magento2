@@ -123,6 +123,11 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $webhookResource;
 
     /**
+     * @var \Radarsofthouse\Reepay\Helper\Customer
+     */
+    protected $reepayCustomerHelper;
+
+    /**
      * @var array
      */
     protected $webhookSecretResolution = [];
@@ -154,6 +159,7 @@ class Index extends \Magento\Framework\App\Action\Action
      * @param \Magento\Payment\Helper\Data $paymentHelper
      * @param \Radarsofthouse\Reepay\Api\SessionRepositoryInterface $sessionRepository
      * @param \Radarsofthouse\Reepay\Model\ResourceModel\Webhook $webhookResource
+     * @param \Radarsofthouse\Reepay\Helper\Customer $reepayCustomerHelper
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -179,7 +185,8 @@ class Index extends \Magento\Framework\App\Action\Action
         \Magento\Framework\Registry $registry,
         \Magento\Payment\Helper\Data $paymentHelper,
         \Radarsofthouse\Reepay\Api\SessionRepositoryInterface $sessionRepository,
-        \Radarsofthouse\Reepay\Model\ResourceModel\Webhook $webhookResource
+        \Radarsofthouse\Reepay\Model\ResourceModel\Webhook $webhookResource,
+        \Radarsofthouse\Reepay\Helper\Customer $reepayCustomerHelper
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->logger = $logger;
@@ -204,6 +211,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $this->paymentHelper = $paymentHelper;
         $this->sessionRepository = $sessionRepository;
         $this->webhookResource = $webhookResource;
+        $this->reepayCustomerHelper = $reepayCustomerHelper;
         parent::__construct($context);
 
         // CsrfAwareAction Magento2.3 compatibility
@@ -589,11 +597,30 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     protected function settled($data)
     {
+        if (
+            !\Radarsofthouse\Reepay\Helper\Invoice::isValidIdentifier($data['invoice'] ?? null) ||
+            !\Radarsofthouse\Reepay\Helper\Invoice::isValidIdentifier($data['transaction'] ?? null)
+        ) {
+            $this->logger->addError('settled webhook : invalid invoice or transaction value');
+
+            return [
+                'status' => 400,
+                'message' => 'Invalid invoice or transaction value.',
+            ];
+        }
         $order_id = $data['invoice'];
         $this->logger->addDebug(__METHOD__, [$order_id]);
         $order = $this->orderInterface->loadByIncrementId($order_id);
+        if (!$order->getId()) {
+            $this->logger->addError('The order #' . $order_id . ' no longer exists.');
+
+            return [
+                'status' => 200,
+                'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
+            ];
+        }
         $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
-        $metadata = $this->invoiceHelper->getMetadata($apiKey, $data['invoice']);
+        $metadata = $this->invoiceHelper->getMetadata($apiKey, $order_id);
         if (isset($metadata['magento']['module']) && $metadata['magento']['module'] === 'subscription') {
             return [
                 'status' => 200,
@@ -602,15 +629,6 @@ class Index extends \Magento\Framework\App\Action\Action
         }
 
         try {
-            if (!$order->getId()) {
-                $this->logger->addError('The order #' . $order_id . ' no longer exists.');
-
-                return [
-                    'status' => 200,
-                    'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
-                ];
-            }
-
             $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
             $reepayTransactionData = $this->invoiceHelper->getTransaction($apiKey, $order_id, $data['transaction']);
 
@@ -653,7 +671,43 @@ class Index extends \Magento\Framework\App\Action\Action
                 }
             }
 
+            if (
+                !empty($reepayTransactionData['id']) &&
+                $reepayTransactionData['type'] == "settle" &&
+                (!isset($chargeRes['state']) || !in_array($chargeRes['state'], ['settled', 'authorized'], true))
+            ) {
+                // the charge must exist and be authorized or settled
+                $this->logger->addError('settled webhook : unexpected charge state for order #' . $order_id);
+
+                return [
+                    'status' => 500,
+                    'message' => 'Unexpected charge state for order #' . $order_id,
+                ];
+            }
+
+            // Also link here: with auto capture the authorized webhook may not be the one that creates the link
+            $this->linkMagentoCustomerFromCharge($order, $chargeRes);
+
             if (!empty($reepayTransactionData['id']) && $reepayTransactionData['type'] == "settle") {
+                // Check the currency and the settled amount against the order.
+                // "<=" (not "==") on purpose: partial capture is supported, so a settle transaction
+                // may be lower than the order total.
+                // The charge amount is not checked: it may include the surcharge fee.
+                $orderTotalMinor = (int) round($order->getGrandTotal() * 100);
+                $chargeCurrency = $chargeRes['currency'] ?? null;
+                $settleAmount = $reepayTransactionData['amount'] ?? null;
+                if (
+                    ($chargeCurrency !== null && $chargeCurrency !== $order->getOrderCurrencyCode()) ||
+                    ($settleAmount !== null && $settleAmount > $orderTotalMinor)
+                ) {
+                    $this->logger->addError('settled webhook : currency or amount mismatch for order #' . $order_id);
+
+                    return [
+                        'status' => 500,
+                        'message' => 'Currency or amount mismatch for order #' . $order_id,
+                    ];
+                }
+
                 // check the transaction has been created
                 $transactions = $this->transactionSearchResultInterfaceFactory->create()->addOrderIdFilter($order->getId());
                 $hasTxn = false;
@@ -779,11 +833,30 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     protected function refund($data)
     {
+        if (
+            !\Radarsofthouse\Reepay\Helper\Invoice::isValidIdentifier($data['invoice'] ?? null) ||
+            !\Radarsofthouse\Reepay\Helper\Invoice::isValidIdentifier($data['transaction'] ?? null)
+        ) {
+            $this->logger->addError('refund webhook : invalid invoice or transaction value');
+
+            return [
+                'status' => 400,
+                'message' => 'Invalid invoice or transaction value.',
+            ];
+        }
         $order_id = $data['invoice'];
         $this->logger->addDebug(__METHOD__, [$order_id]);
         $order = $this->orderInterface->loadByIncrementId($order_id);
+        if (!$order->getId()) {
+            $this->logger->addError('The order #' . $order_id . ' no longer exists.');
+
+            return [
+                'status' => 200,
+                'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
+            ];
+        }
         $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
-        $metadata = $this->invoiceHelper->getMetadata($apiKey, $data['invoice']);
+        $metadata = $this->invoiceHelper->getMetadata($apiKey, $order_id);
         if (isset($metadata['magento']['module']) && $metadata['magento']['module'] === 'subscription') {
             return [
                 'status' => 200,
@@ -792,19 +865,24 @@ class Index extends \Magento\Framework\App\Action\Action
         }
 
         try {
-            if (!$order->getId()) {
-                $this->logger->addError('The order #' . $order_id . ' no longer exists.');
-
-                return [
-                    'status' => 200,
-                    'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
-                ];
-            }
-
             $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
             $refundData = $this->invoiceHelper->getTransaction($apiKey, $order_id, $data['transaction']);
 
             if (!empty($refundData['id']) && $refundData['state'] == "refunded") {
+                // Check the refund amount against the order total ("<=" because partial refund is supported)
+                $refundAmount = $refundData['amount'] ?? null;
+                $refundCurrency = $refundData['currency'] ?? null;
+                if (
+                    ($refundAmount !== null && $refundAmount > (int) round($order->getGrandTotal() * 100)) ||
+                    ($refundCurrency !== null && $refundCurrency !== $order->getOrderCurrencyCode())
+                ) {
+                    $this->logger->addError('refund webhook : currency or amount mismatch for order #' . $order_id);
+
+                    return [
+                        'status' => 500,
+                        'message' => 'Currency or amount mismatch for order #' . $order_id,
+                    ];
+                }
 
                 // check the transaction has been created
                 $transactions = $this->transactionSearchResultInterfaceFactory->create()->addOrderIdFilter($order->getId());
@@ -877,6 +955,14 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     protected function cancel($data)
     {
+        if (!\Radarsofthouse\Reepay\Helper\Invoice::isValidIdentifier($data['invoice'] ?? null)) {
+            $this->logger->addError('cancel webhook : invalid invoice value');
+
+            return [
+                'status' => 400,
+                'message' => 'Invalid invoice value.',
+            ];
+        }
         $order_id = $data['invoice'];
         $this->logger->addDebug(__METHOD__, [$order_id]);
         $order = $this->orderInterface->loadByIncrementId($order_id);
@@ -968,11 +1054,27 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     protected function authorize($data)
     {
+        if (!\Radarsofthouse\Reepay\Helper\Invoice::isValidIdentifier($data['invoice'] ?? null)) {
+            $this->logger->addError('authorize webhook : invalid invoice value');
+
+            return [
+                'status' => 400,
+                'message' => 'Invalid invoice value.',
+            ];
+        }
         $order_id = $data['invoice'];
         $this->logger->addDebug(__METHOD__, [$order_id]);
         $order = $this->orderInterface->loadByIncrementId($order_id);
+        if (!$order->getId()) {
+            $this->logger->addError('The order #' . $order_id . ' no longer exists.');
+
+            return [
+                'status' => 200,
+                'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
+            ];
+        }
         $apiKey = $this->reepayHelper->getApiKey($order->getStoreId());
-        $metadata = $this->invoiceHelper->getMetadata($apiKey, $data['invoice']);
+        $metadata = $this->invoiceHelper->getMetadata($apiKey, $order_id);
         if (isset($metadata['magento']['module']) && $metadata['magento']['module'] === 'subscription') {
             return [
                 'status' => 200,
@@ -981,15 +1083,6 @@ class Index extends \Magento\Framework\App\Action\Action
         }
 
         try {
-            if (!$order->getId()) {
-                $this->logger->addError('The order #' . $order_id . ' no longer exists.');
-
-                return [
-                    'status' => 200,
-                    'message' => 'Order #' . $order_id . ' does not exist in Magento. It may have been created from another system.'
-                ];
-            }
-
             // check if has reepay status row for the order, That means the order has been authorized
             $reepayStatus = $this->reepayStatus->load($order_id, 'order_id');
             if ($reepayStatus->getStatusId()) {
@@ -1006,6 +1099,25 @@ class Index extends \Magento\Framework\App\Action\Action
                 $apiKey,
                 $order_id
             );
+
+            // Check the charge state before saving
+            if (!is_array($chargeRes) || !isset($chargeRes['state']) || !in_array($chargeRes['state'], ['authorized', 'settled'], true)) {
+                $this->logger->addError('authorize webhook : unexpected charge state for order #' . $order_id);
+
+                return [
+                    'status' => 500,
+                    'message' => 'Unexpected charge state for order #' . $order_id,
+                ];
+            }
+            // Check the charge currency against the order currency.
+            if (isset($chargeRes['currency']) && $chargeRes['currency'] !== $order->getOrderCurrencyCode()) {
+                $this->logger->addError('authorize webhook : currency mismatch for order #' . $order_id);
+
+                return [
+                    'status' => 500,
+                    'message' => 'Currency mismatch for order #' . $order_id,
+                ];
+            }
 
             $updatePaymentMethod = $this->reepayHelper->getConfig('update_order_payment_method', $order->getStoreId());
             if ($updatePaymentMethod && $order->getPayment() && $order->getPayment()->getMethod() == 'reepay_payment') {
@@ -1060,6 +1172,8 @@ class Index extends \Magento\Framework\App\Action\Action
             $this->reepayHelper->addTransactionToOrder($order, $chargeRes);
             $this->logger->addDebug('order #' . $order_id . ' has been authorized by the webhook');
 
+            $this->linkMagentoCustomerFromCharge($order, $chargeRes);
+
             $this->surchargeFee($order_id, $chargeRes);
 
             $this->processAgeVerification($apiKey, $order);
@@ -1075,6 +1189,31 @@ class Index extends \Magento\Framework\App\Action\Action
                 'status' => 500,
                 'message' => 'webhook authorize error : ' . $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Link the logged-in Magento customer to the Frisbii customer of this charge (if not linked yet).
+     * Only used after the charge is authorized/settled for an order placed by a logged-in customer.
+     *
+     * @param \Magento\Sales\Model\Order $order
+     * @param array $chargeRes
+     * @return void
+     */
+    private function linkMagentoCustomerFromCharge($order, $chargeRes)
+    {
+        if (
+            $order->getCustomerId()
+            && isset($chargeRes['state'])
+            && in_array($chargeRes['state'], ['authorized', 'settled'], true)
+            && !empty($chargeRes['customer'])
+            && is_string($chargeRes['customer'])
+        ) {
+            $this->reepayCustomerHelper->linkMagentoCustomer(
+                $order->getCustomerId(),
+                $order->getCustomerEmail(),
+                $chargeRes['customer']
+            );
         }
     }
 
